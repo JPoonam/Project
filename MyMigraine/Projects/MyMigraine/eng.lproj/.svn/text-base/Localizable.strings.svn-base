@@ -1,0 +1,18 @@
+/* 
+    Localizable.strings
+    English (default) localization 
+*/
+
+"MSG_NO_INET_TITLE"    = "No network connection";
+"MSG_NO_INET_MESSAGE"  = "Your device is not currently connected to the internet. The application requires a network connection.";
+
+"BTN_OK"               = "OK";
+"BTN_BACK"             = "Back";
+"BTN_CANCEL"           = "Cancel";
+
+"ERR_SAVE_DB"          = "Cannot save changes to the database";
+"ERR_SAVE_DB_D"        = "%@";
+
+"ERR_FETCH_DB"         = "Cannot fetch data from the database";
+"ERR_FETCH_DB_D"       = "%@";
+

@@ -1,0 +1,883 @@
+
+#import "BH.h"
+#import "INCoreData.h"
+
+BH * g_BH = nil;
+
+//==================================================================================================================================
+//==================================================================================================================================
+
+@interface BH()
+
+@property (nonatomic,readonly) NSManagedObjectContext * managedObjectContext;
+
+- (void)prefillDatabase;
+
+@end
+
+//==================================================================================================================================
+
+@implementation BH
+
+@synthesize logFilterItemMask1 = _logFilterMask;
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (id) init {
+    self = [super init];
+    if (self != nil) {
+        _errorAlertCenter = [INErrorAlertCenter new];
+        _errorAlertCenter.noInternetTitle    = InruLoc(@"MSG_NO_INET_TITLE");
+        _errorAlertCenter.noInternetMessage  = InruLoc(@"MSG_NO_INET_MESSAGE",INAppName()); 
+        _errorAlertCenter.okButtonMessage    = InruLoc(@"BTN_OK");
+        
+        //_netCenter = [INNetCenter new];
+        //_netCenter.maxConnectionCount = MAX_CONNECTION_COUNT;
+        // [self managedObjectContext]; // just load context + database 
+        
+        // load font, just to avoid delays in future
+        [BHReusableObjects blueLabelFont];
+    }
+    return self;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void) dealloc {
+    [_errorAlertCenter release];
+    [_migrainEvent release];
+    [_managedObjectContext_notUseDirectly release];
+    [_managedObjectModel_notUseDirectly release];
+    [_persistentStoreCoordinator_notUseDirectly release];
+    [_prefillEntityName release];
+    [super dealloc];
+}
+
+#pragma mark -
+#pragma mark Load and save preferences  
+
+#define ASK_MENSTRUATIONS @"ask_menstruations"
+#define TERMS_ACCEPTED    @"terms_accepted"
+#define HAS_RECORDS       @"has_records"
+#define REPORT_FILTER     @"report_filter"
+#define START_DAY         @"start_date"
+
+- (void)loadPreferences { 
+    NSUserDefaults * defaults = [NSUserDefaults standardUserDefaults];
+    if (![defaults objectForKey:ASK_MENSTRUATIONS]) {
+        self.askMenstruations = YES;
+    }
+    
+    _logFilterMask = [defaults integerForKey:REPORT_FILTER];
+    if (!_logFilterMask) { 
+        _logFilterMask = BHScreenFilterInitialMask; 
+    }
+    
+    NSDictionary * dict = [defaults dictionaryForKey:START_DAY];
+    _sharedStartDate = BHNormalizeStartDate((BHStartDate) { 
+        .dateKind = [[dict objectForKey:@"kind"] intValue],
+        .ymd.year = [[dict objectForKey:@"year"] intValue],
+        .ymd.month = [[dict objectForKey:@"month"] intValue],
+        .ymd.day = [[dict objectForKey:@"day"] intValue]
+    });
+        
+    // reset all settings for new versionn
+    NSString * storedVersion = [defaults objectForKey:@"AppVersion"];
+    NSString * appVersion = INAppVersion();
+    if (![appVersion isEqualToString:storedVersion]) { 
+        _firstStartAfterUpdateOrInstall = YES;
+        
+        [defaults removeObjectForKey:@"AlreadyOpenedTabs"];
+        self.termsAccepted = NO;
+    }
+    [defaults setObject:appVersion forKey:@"AppVersion"];
+        
+        
+    #ifdef DEBUG_ALWAYS_SHOW_TERMS_OF_USE
+        self.termsAccepted = NO;
+        [defaults removeObjectForKey:@"AlreadyOpenedTabs"];
+    #endif 
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)setLogFilterItemMask:(NSInteger)logFilterItemMask { 
+    _logFilterMask = logFilterItemMask;
+    [self savePreferences];
+}
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)savePreferences { 
+    NSUserDefaults * defaults = [NSUserDefaults standardUserDefaults];
+    [defaults setInteger:_logFilterMask forKey:REPORT_FILTER];
+    
+    [defaults setObject:[NSDictionary dictionaryWithObjectsAndKeys:
+                         [NSNumber numberWithInt:_sharedStartDate.dateKind], @"kind",  
+                         [NSNumber numberWithInt:_sharedStartDate.ymd.year], @"year",  
+                         [NSNumber numberWithInt:_sharedStartDate.ymd.month], @"month",  
+                         [NSNumber numberWithInt:_sharedStartDate.ymd.day], @"day",  
+                         nil] forKey:START_DAY];
+    
+    [defaults synchronize];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (BOOL)askMenstruations { 
+    return [[NSUserDefaults standardUserDefaults] boolForKey:ASK_MENSTRUATIONS];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)setAskMenstruations:(BOOL)value { 
+    [[NSUserDefaults standardUserDefaults] setBool:value forKey:ASK_MENSTRUATIONS];
+    [[NSUserDefaults standardUserDefaults] synchronize];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (BOOL)termsAccepted {
+    return [[NSUserDefaults standardUserDefaults] boolForKey:TERMS_ACCEPTED];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)setTermsAccepted:(BOOL)value { 
+    [[NSUserDefaults standardUserDefaults] setBool:value forKey:TERMS_ACCEPTED];
+    [[NSUserDefaults standardUserDefaults] synchronize];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (BOOL)hasRecords {
+    return [[NSUserDefaults standardUserDefaults] boolForKey:HAS_RECORDS];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)setHasRecords:(BOOL)value { 
+    [[NSUserDefaults standardUserDefaults] setBool:value forKey:HAS_RECORDS];
+    [[NSUserDefaults standardUserDefaults] synchronize];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (BHStartDate)sharedStartDate {
+    self.sharedStartDate = BHNormalizeStartDate(_sharedStartDate);
+    return _sharedStartDate;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)setSharedStartDate:(BHStartDate)value {
+    value = BHNormalizeStartDate(value);
+    if (!BHStartDatesAreEqual(_sharedStartDate, value)) { 
+        _sharedStartDate= value;
+        [[NSNotificationCenter defaultCenter] postNotificationName:BH_SHARED_START_DATE_CHANGED_NOTIFICATION object:nil];
+    }
+} 
+    
+#pragma mark -
+#pragma mark Application runtime handlers  
+
+- (void)onAppStart { 
+    [self loadDatabase];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)onAppGoingForeground { 
+
+}
+
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)onAppTerminateOrGoingBackground:(BOOL)isTerminated { 
+    [self savePreferences];
+    // [self saveContext];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)onAppActivating { 
+
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)onAppDeactivating { 
+   
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+#pragma mark -
+#pragma mark Error handling 
+
+- (void)clearErrorForSender:(id)sender { 
+    [_errorAlertCenter clearLastErrorForSender: sender];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)showError:(NSError *)error titleKey:(NSString *)titleKey 
+   explanationKey:(NSString *)explKey forceShow:(BOOL)forceShow sender:(id)sender {
+#ifdef IN_DEBUG_CONFIGURATION
+    NSString * errorString = InruLoc(explKey, [error inru_localizedDescriptionForCoreData]);
+#else 
+    NSString * errorString = InruLoc(explKey, [error localizedDescription]);
+#endif 
+    [_errorAlertCenter error:error sender:sender title:InruLoc(titleKey) message:errorString forceShow:forceShow];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)showError:(NSError *)error title:(NSString *)title 
+    explanation:(NSString *)explanation forceShow:(BOOL)forceShow sender:(id)sender {
+
+    [_errorAlertCenter error:error sender:sender title:title message:explanation forceShow:forceShow];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+#pragma mark -
+#pragma mark Core Data stack
+
+- (BOOL)saveContext {
+    NSError *error = nil;
+	NSManagedObjectContext * managedObjectContext = self.managedObjectContext;
+    if (managedObjectContext != nil) {
+        // CoreDataErrors.h
+        // NSValidationMultipleErrorsError                  = 1560,   // generic message for error containing multiple validation errors
+        if ([managedObjectContext hasChanges] && ![managedObjectContext save:&error]) {
+            #ifdef IN_DEBUG_CONFIGURATION    
+                NSLog(@"SAVE CONTEXT ERROR: %@", error);
+                [_migrainEvent inru_dump];
+            #endif
+            
+            [self showError:error titleKey:@"ERR_SAVE_DB" explanationKey:@"ERR_SAVE_DB_D" forceShow:YES sender:@"SAVE"];
+            return NO;
+        } 
+    }// NSDetailedErrorsKey
+    return YES;
+}    
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)prepareEvent:(BHMigrainEvent *)event { 
+    
+    // finally validate data
+    if (!event.timestamp) { 
+        event.timestamp = [[NSDate date] inru_trimTime];
+    } 
+    INDateComponents c = [event.timestamp inru_components]; 
+    event.yearMonth = [NSNumber numberWithInt:c.year * 100 + c.month];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+#ifdef DEBUG_RECREATE_WITH_FAKE_RECORDS
+
+- (void)debug_createFakeRecordWithDate:(NSDate *)date collectionItems:(NSArray *)collectionItems{ 
+    BHMigrainEvent * event = [self currentMigrainEvent:YES];
+    event.timestamp = [date inru_trimTime];
+    event.startHour = [NSNumber numberWithInt:INRandomInRange(0, 24)];
+    event.duration  = [NSNumber numberWithInt:60 * INRandomInRange(1, 10)];
+    event.hasHeadache = [NSNumber numberWithBool:INRandomInRange(0, 1)];
+    event.intensity   = [NSNumber numberWithInt:10 * INRandomInRange(1, 3)];
+    event.menstruating = [NSNumber numberWithInt:INRandomInRange(0, BHMenstruatingLast-1)];
+    
+    if (INRandomInRange(0, 2) == 0) { 
+        event.skippedBreakfast = BHBoolNumber(INRandomInRange(0, 2) == 0);       
+        event.skippedLunch = BHBoolNumber(INRandomInRange(0, 2) == 0);       
+        event.skippedDinner = BHBoolNumber(INRandomInRange(0, 2) == 0);       
+    }
+    if (INRandomInRange(0, 5) == 0) { 
+        event.fasting = BHBoolNumber(YES);       
+    }
+
+    if (INRandomInRange(0, 5) == 0) { 
+        event.note = [NSString inru_loremIpsumOfLength:INRandomInRange(0,500)];       
+    }
+    
+    for (NSDictionary * dict in collectionItems) {
+        SEL add = (void *)[[dict objectForKey:@"selector"] intValue];
+        for (BHCollectionItem * item in [dict objectForKey:@"objects"]) {
+            if (INRandomInRange(0, 2) == 0) { 
+                [event performSelector:add withObject:item];
+            } 
+        } 
+    }
+    [self prepareEvent:event];
+    event.isCompleted = BHBoolNumber(YES); 
+    [self releaseCurrentEvent];
+}
+
+#endif 
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+#ifdef DEBUG_RECREATE_WITH_FAKE_RECORDS
+
+- (void)debug_createFakeRecords { 
+    NSInteger count = DEBUG_FAKE_RECORD_COUNT;
+    
+    NSDictionary * (^ItemInfo)(NSString * entity) = ^(NSString * entity) { 
+        
+        // add a couple custom items
+        {
+            NSFetchedResultsController * fr = [self fetchedResultsControllerForCategoryWithEntityName:entity style:BHFetchStyleCheckList params:nil];
+            int baseOrder = [[[[[fr.sections objectAtIndex:0] objects] lastObject] orderNo] intValue];
+            if (baseOrder) { 
+                baseOrder++;
+            }
+            for (int i = 0; i < 3; i++) { 
+                BHCollectionItem * item = [NSEntityDescription insertNewObjectForEntityForName:entity inManagedObjectContext:self.managedObjectContext];
+                item.orderNo = [NSNumber numberWithInt:i + baseOrder];
+                item.isDefault = [NSNumber numberWithBool:NO];
+                item.name      = [NSString stringWithFormat:@"Custom %@ item #%d", entity, i];
+            }
+        }
+        
+        // 
+        NSString * relName = [NSString stringWithFormat:@"%@s",[entity lowercaseString]];
+        INRelationshipInfo info = [NSManagedObject inru_infoForRelationshipWithName:relName];
+        NSFetchedResultsController * results = [self fetchedResultsControllerForCategoryWithEntityName:entity style:BHFetchStyleCheckList params:nil];
+        NSArray * objects = [[results.sections objectAtIndex:0] objects];
+        return [NSDictionary dictionaryWithObjectsAndKeys:
+             results, @"results",
+             [NSNumber numberWithInt:(int)info.addObjectSelector], @"selector",
+             objects, @"objects", 
+             nil]; 
+    };
+    
+    
+    NSMutableArray * items = [NSMutableArray arrayWithObjects: 
+       ItemInfo(ENTITY_LOCATION),
+       ItemInfo(ENTITY_WARNING),
+       ItemInfo(ENTITY_SYMPTOM),
+       ItemInfo(ENTITY_TREATMENT),
+       ItemInfo(ENTITY_RELIEF),
+       ItemInfo(ENTITY_FOOD),
+       ItemInfo(ENTITY_ENVIRONMENT),
+       ItemInfo(ENTITY_LIFESTYLE),
+       nil];
+    
+    for (int i = 0; i < count; i++) { 
+        [self debug_createFakeRecordWithDate:[NSDate dateWithTimeIntervalSinceNow:-INRandomInRange(0, count) * 24 * 3600] collectionItems:items];
+    }
+    [self saveContext];
+    self.hasRecords = YES;  
+}
+
+#endif
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (BOOL)prepareAndSaveEvent:(BHMigrainEvent *)event { 
+
+    // finally validate data
+    [self prepareEvent:event];
+    
+    if ([self saveContext]) {
+        #ifdef DEBUG_DB_LOG 
+            NSLog(@"EVENT SAVED: %@", event); 
+        #endif 
+        event.screenReportHeight = 0;
+        if (event.userWantNotToBeAskedOfMenstruations) { 
+            g_BH.askMenstruations = NO;
+        }
+        if (event.isCompleted.boolValue) { 
+            self.hasRecords = YES;
+        }
+        [[NSNotificationCenter defaultCenter] postNotificationName:BH_RECORD_SAVED_IN_CONTEXT_NOTIFICATION object:nil];
+        return YES;
+    } else { 
+        return NO;
+    }
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+/**
+ Returns the managed object model for the application.
+ If the model doesn't already exist, it is created from the application's model.
+ */
+- (NSManagedObjectModel *)managedObjectModel {
+    
+    if (_managedObjectModel_notUseDirectly != nil) {
+        return _managedObjectModel_notUseDirectly;
+    }
+    NSString * modelPath = [[NSBundle mainBundle] pathForResource:@"MyMigraine" ofType:@"momd"];
+    NSURL * modelURL = [NSURL fileURLWithPath:modelPath];
+    _managedObjectModel_notUseDirectly = [[NSManagedObjectModel alloc] initWithContentsOfURL:modelURL];    
+    return _managedObjectModel_notUseDirectly;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+/**
+ Returns the managed object context for the application.
+ If the context doesn't already exist, it is created and bound to the persistent store coordinator for the application.
+ */
+- (NSManagedObjectContext *)managedObjectContext {
+    return _managedObjectContext_notUseDirectly;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (NSURL *)databaseURL { 
+    NSURL * applicationDocumentsDirectory = [[[NSFileManager defaultManager] URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask] lastObject];
+    NSURL * storeURL = [applicationDocumentsDirectory URLByAppendingPathComponent:@"MyMigraines.sqlite"];
+    return storeURL;
+}
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)loadDatabase { 
+    NSAssert(!_managedObjectContext_notUseDirectly,@"mk_ca44c11f_6a79_493b_ac70_c5bf758b5a97");
+
+    BOOL databaseCreatedFromScratch = NO;
+    
+    // create or open database 
+    if (!_persistentStoreCoordinator_notUseDirectly) {
+        
+        // NSURL * applicationDocumentsDirectory = [[[NSFileManager defaultManager] URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask] lastObject];
+        NSURL * storeURL = self.databaseURL;
+        
+        #ifdef DEBUG_RECREATE_WITH_FAKE_RECORDS
+            #warning the database recreated at start up!
+            [[NSFileManager defaultManager] removeItemAtURL:storeURL error:nil];
+        #endif 
+        
+        databaseCreatedFromScratch = ![[NSFileManager defaultManager] fileExistsAtPath:storeURL.path];
+        
+        NSError *error = nil;
+        _persistentStoreCoordinator_notUseDirectly = [[NSPersistentStoreCoordinator alloc] initWithManagedObjectModel:[self managedObjectModel]];
+        NSDictionary *options = [NSDictionary dictionaryWithObjectsAndKeys:
+                                 [NSNumber numberWithBool:YES], NSMigratePersistentStoresAutomaticallyOption,
+                                 [NSNumber numberWithBool:YES], NSInferMappingModelAutomaticallyOption, nil];
+        if (![_persistentStoreCoordinator_notUseDirectly addPersistentStoreWithType:NSSQLiteStoreType configuration:nil URL:storeURL options:options error:&error]) {
+            UIAlertView * alert = [[[UIAlertView alloc] initWithTitle:@"Failed to open database" message:@"There was some error while opening the database. Select 'Exit the application' to leave things as is or select 'Recreate' to drop all old data and start from scratch." delegate:nil 
+                                                    cancelButtonTitle:@"Exit application" otherButtonTitles:@"Recreate database", nil] autorelease];
+            alert.delegate = self;
+            [alert show];
+            return;
+        }   
+             
+        // here we have already _persistentStoreCoordinator_notUseDirectly loaded
+        NSAssert(_persistentStoreCoordinator_notUseDirectly, @"mk_f9b73e67_a6ef_48c1_b519_232020cb4ff1");
+        _managedObjectContext_notUseDirectly = [NSManagedObjectContext new];
+        [_managedObjectContext_notUseDirectly setPersistentStoreCoordinator:_persistentStoreCoordinator_notUseDirectly];
+    }
+    
+    if (databaseCreatedFromScratch) { 
+        [self prefillDatabase];
+        self.hasRecords = NO;            
+    }
+    
+    
+    #ifdef DEBUG_RECREATE_WITH_FAKE_RECORDS
+        #warning the database is filled with fake records! 
+        NSLog(@"Filling the datadase with fake records...");
+        [self debug_createFakeRecords];
+        NSLog(@"Done");
+    #endif
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex { 
+    if (alertView.cancelButtonIndex == buttonIndex) { 
+         abort();
+    }
+    
+    [[NSFileManager defaultManager] removeItemAtURL:self.databaseURL error:nil];
+    [self loadDatabase];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (NSEntityDescription *)entityWithName:(NSString *)name { 
+    NSEntityDescription * entity = [NSEntityDescription entityForName:name inManagedObjectContext:_managedObjectContext_notUseDirectly];
+    NSAssert(entity,@"mk_b47fd261_1914_4f0f_a88a_8fb298b546e2");
+    return entity;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)prefillDatabase_startNewEntityWithName:(NSString *)name { 
+    [_prefillEntityName release];
+    _prefillEntityName = [name retain];
+    _prefillOrder = 0;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (BHCollectionItem *)prefillDatabase_addCollectionItemWithName:(NSString *)name { 
+    BHCollectionItem * item = [NSEntityDescription insertNewObjectForEntityForName:_prefillEntityName inManagedObjectContext:self.managedObjectContext];
+    item.orderNo   = [NSNumber numberWithInt:_prefillOrder++];
+    item.isDefault = [NSNumber numberWithBool:YES];
+    item.name      = name;
+    return item;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)prefillDatabase_addCollectionItems:(NSArray *)items { 
+    NSInteger count = items.count;
+    NSAssert((count % 2) == 0, @"mk_efed1975_34ed_4a6f_8e7a_a7fdda04f6ca");
+    for (int i = 0; i < count /2; i++) { 
+        NSString * itemName = [items objectAtIndex:i * 2];
+        NSNumber * tag = [items objectAtIndex:i * 2 + 1];
+        NSAssert([itemName isKindOfClass:NSString.class], @"mk_179cbe31_d6a6_410f_9811_1813770e73dc");
+        NSAssert([tag isKindOfClass:NSNumber.class], @"mk_179cbe31_d6a6_410f_9811_1813770e73dc");
+        [self prefillDatabase_addCollectionItemWithName:itemName].tag = tag; 
+    }
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)prefillDatabase {
+    NSAssert(_managedObjectContext_notUseDirectly, @"mk_de2139bd_f74e_4ca9_b76d_be04a4fbbe79");
+    
+    // location 
+    [self prefillDatabase_startNewEntityWithName:ENTITY_LOCATION];
+    [self prefillDatabase_addCollectionItems:
+          [NSArray arrayWithObjects:
+               @"Left side of head", [NSNumber numberWithInt:LocationTag_LeftSide],
+               @"Right side of head", [NSNumber numberWithInt:LocationTag_RightSide],
+               @"Both sides of head", [NSNumber numberWithInt:LocationTag_BothSides],
+               @"Front of head", [NSNumber numberWithInt:LocationTag_Front],
+               @"Back of head", [NSNumber numberWithInt:LocationTag_Back],
+               @"Temples", [NSNumber numberWithInt:LocationTag_Temples],
+               @"Around the eyes", [NSNumber numberWithInt:LocationTag_Around],
+               @"Neck", [NSNumber numberWithInt:LocationTag_Neck],
+               @"Teeth", [NSNumber numberWithInt:LocationTag_Teeth],
+               @"Jaw", [NSNumber numberWithInt:LocationTag_Jaw],
+               nil]];
+ 
+    // warnings 
+    [self prefillDatabase_startNewEntityWithName:ENTITY_WARNING];
+    [self prefillDatabase_addCollectionItems:
+          [NSArray arrayWithObjects:
+               @"Visual disturbance",[NSNumber numberWithInt:WarningTag_VisualDisturance_Help],   
+               @"Weakness",[NSNumber numberWithInt:WarningTag_Weakness],
+               @"Fatigue",[NSNumber numberWithInt:WarningTag_Fatigue],
+               nil]];               
+
+    [self prefillDatabase_startNewEntityWithName:ENTITY_SYMPTOM];
+    [self prefillDatabase_addCollectionItems:
+          [NSArray arrayWithObjects:
+               @"Nausea", [NSNumber numberWithInt:SymptomTag_Nausea],
+               @"Vomiting",[NSNumber numberWithInt:SymptomTag_Vomiting], 
+               @"Sensitivity to light", [NSNumber numberWithInt:SymptomTag_Light],
+               @"Sensitivity to noise", [NSNumber numberWithInt:SymptomTag_Noise],
+               @"Sensitivity to smell",  [NSNumber numberWithInt:SymptomTag_Smell],
+               @"Increased sensitivity on skin/scalp",  [NSNumber numberWithInt:SymptomTag_Scalp],
+               @"Neck pain", [NSNumber numberWithInt:SymptomTag_Neck],
+               @"Fainting", [NSNumber numberWithInt:SymptomTag_Fainting],
+               @"Nasal congestion", [NSNumber numberWithInt:SymptomTag_Nasal],
+               @"Missed an activity/commitment", [NSNumber numberWithInt:SymptomTag_MissedActivity_Help],
+               nil]];
+ 
+
+    [self prefillDatabase_startNewEntityWithName:ENTITY_TREATMENT];
+    /*
+    [self prefillDatabase_addCollectionItems:
+          [NSArray arrayWithObjects:
+               @"Green Tea",
+               @"Aspirin",
+               nil]];
+    */
+
+    [self prefillDatabase_startNewEntityWithName:ENTITY_RELIEF];
+    [self prefillDatabase_addCollectionItems:
+          [NSArray arrayWithObjects:
+               @"Yes", [NSNumber numberWithInt:ReliefTag_Yes],
+               @"No", [NSNumber numberWithInt:ReliefTag_No],
+               nil]];
+               
+    [self prefillDatabase_startNewEntityWithName:ENTITY_FOOD];
+    [self prefillDatabase_addCollectionItems:
+          [NSArray arrayWithObjects:
+               @"Aged cheese", [NSNumber numberWithInt:FoodTag_Aged],
+               @"Alcoholic beverages", [NSNumber numberWithInt:FoodTag_Alcohol],
+               @"Artificial sweeteners", [NSNumber numberWithInt:FoodTag_Artificial],
+               @"Chocolate", [NSNumber numberWithInt:FoodTag_Chocolate],
+               @"Citrus fruits", [NSNumber numberWithInt:FoodTag_Citrus],
+               @"Coffee or tea", [NSNumber numberWithInt:FoodTag_Coffee],
+               @"Soda (caffeinated)", [NSNumber numberWithInt:FoodTag_Soda],
+               @"Monosodium glutamate (MSG)", [NSNumber numberWithInt:FoodTag_Monosodium],
+               @"Processed meats", [NSNumber numberWithInt:FoodTag_Processed],
+               @"Salty foods", [NSNumber numberWithInt:FoodTag_Salty],
+               @"Nuts, peanut butter", [NSNumber numberWithInt:FoodTag_Nuts],
+               nil]];
+               
+    [self prefillDatabase_startNewEntityWithName:ENTITY_ENVIRONMENT];
+    [self prefillDatabase_addCollectionItems:
+          [NSArray arrayWithObjects:
+               @"Temperature changes", [NSNumber numberWithInt:EnvTag_Temperature],
+               @"Barometric pressure changes", [NSNumber numberWithInt:EnvTag_Barometric],
+               @"Humidity changes", [NSNumber numberWithInt:EnvTag_Humidity],
+               @"Smoke or smog", [NSNumber numberWithInt:EnvTag_Smoke],
+               @"Chemical odors", [NSNumber numberWithInt:EnvTag_Chemical],
+               @"Perfumes or fragrances", [NSNumber numberWithInt:EnvTag_Perfumes],
+               @"Bright, flashing, or glaring lights", [NSNumber numberWithInt:EnvTag_Bright],
+               nil]];
+               
+    [self prefillDatabase_startNewEntityWithName:ENTITY_LIFESTYLE];
+    [self prefillDatabase_addCollectionItems:
+         [NSArray arrayWithObjects:
+              @"Changes in sleep patterns", [NSNumber numberWithInt:LifeTag_Changes],
+              @"High or accumulated stress", [NSNumber numberWithInt:LifeTag_High],
+              @"Increased anxiety", [NSNumber numberWithInt:LifeTag_Increased],
+              @"Depression", [NSNumber numberWithInt:LifeTag_Depression],
+              @"Caffeine withdrawal", [NSNumber numberWithInt:LifeTag_CaffeineWithdraw_Help], 
+              @"Stress letdown", [NSNumber numberWithInt:LifeTag_StressLetdown_Help], 
+              @"Physical overexertion", [NSNumber numberWithInt:LifeTag_Physical], 
+              @"Exercising in the heat", [NSNumber numberWithInt:LifeTag_Exercising],
+              @"Becoming overtired", [NSNumber numberWithInt:LifeTag_Becoming],
+              @"Eyestrain", [NSNumber numberWithInt:LifeTag_Eyestrain],
+              nil]];
+  
+    // save 
+    [self saveContext];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (NSFetchedResultsController *)fetchedResultsControllerForCategoryWithEntityName:(NSString * )entityName style:(BHFetchStyle)style params:(id)params {
+    NSFetchRequest *fetchRequest = [NSFetchRequest new];
+    
+    // Edit the entity name as appropriate.
+    NSEntityDescription *entity = [self entityWithName:entityName];
+    [fetchRequest setEntity:entity];
+    
+    // Set the batch size to a suitable number.
+    [fetchRequest setFetchBatchSize:20];
+    
+    
+    // Sort & predicate
+    NSArray *sortDescriptors = nil; 
+    NSPredicate * predicate = nil;
+    switch (style) { 
+        case BHFetchStyleCategoryItem:
+             sortDescriptors =  [NSArray arrayWithObjects:
+                                    [[[NSSortDescriptor alloc] initWithKey:@"orderNo" ascending:YES] autorelease]      
+                                    ,nil];
+             predicate = [NSPredicate predicateWithFormat:@"(isDefault == %@) AND (recordDeleted == %@)", 
+                                    BHBoolNumber(NO), BHBoolNumber(NO)]; 
+             break;
+
+        case BHFetchStyleItemByName:
+             predicate = [NSPredicate predicateWithFormat:@"name == [c] %@", params];
+             sortDescriptors =  [NSArray arrayWithObjects:
+                                    [[[NSSortDescriptor alloc] initWithKey:@"orderNo" ascending:YES] autorelease]      
+                                    ,nil]; 
+             break;
+
+        case BHFetchStyleCheckList:
+             sortDescriptors =  [NSArray arrayWithObjects:
+                                    [[[NSSortDescriptor alloc] initWithKey:@"isDefault" ascending:NO] autorelease],      
+                                    [[[NSSortDescriptor alloc] initWithKey:@"orderNo" ascending:YES] autorelease],      
+                                    nil];
+             predicate = [NSPredicate predicateWithFormat:@"(recordDeleted == %@)", BHBoolNumber(NO)]; 
+             break;
+             
+        default:
+             NSAssert(0,@"mk_3e9e1c5d_cc79_44ca_8dd6_aa30418726a9");
+    }
+    [fetchRequest setSortDescriptors:sortDescriptors];
+    [fetchRequest setPredicate:predicate];
+    
+    // Edit the section name key path and cache name if appropriate.
+    // nil for section name key path means "no sections".
+    NSFetchedResultsController * aFetchedResultsController = 
+        [[[NSFetchedResultsController alloc] initWithFetchRequest:fetchRequest managedObjectContext:self.managedObjectContext 
+                                                  sectionNameKeyPath:nil cacheName:nil] autorelease];
+    [fetchRequest release];
+    [aFetchedResultsController bh_performFetch];
+
+    return aFetchedResultsController;
+}    
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (NSFetchedResultsController *)fetchedResultsControllerForEventWithStyle:(BHFetchStyle)style sinceDate:(NSDate *)startDate{
+    NSFetchRequest *fetchRequest = [NSFetchRequest new];
+    
+    // Edit the entity name as appropriate.
+    NSEntityDescription *entity = [self entityWithName:ENTITY_MIGRAIN_EVENT];
+    [fetchRequest setEntity:entity];
+    
+    // Set the batch size to a suitable number.
+    [fetchRequest setFetchBatchSize:200];
+    
+    // Sort & predicate
+    NSArray *sortDescriptors = nil; 
+    NSPredicate * predicate = nil;
+    NSString * sectionNameKey = nil;
+    
+    switch (style) {
+        case BHFetchStylePDFReport:
+        case BHFetchStyleScreenReport:
+            sectionNameKey = @"yearMonth";
+            // break; no break here            
+                
+        case BHFetchStyleHistory:
+            sortDescriptors =  [NSArray arrayWithObjects:
+                                    [[[NSSortDescriptor alloc] initWithKey:@"timestamp" ascending:NO] autorelease],
+                                    [[[NSSortDescriptor alloc] initWithKey:@"hasHeadache" ascending:NO] autorelease],
+                                    [[[NSSortDescriptor alloc] initWithKey:@"startHour" ascending:NO] autorelease],
+                                    nil];
+            predicate = [NSPredicate predicateWithFormat:@"(isCompleted == %@) AND (timestamp >= %@)", 
+                         BHBoolNumber(YES), startDate ];
+            break;            
+            
+        case BHFetchStyleCharts:
+            sortDescriptors =  [NSArray arrayWithObjects:
+                                [[[NSSortDescriptor alloc] initWithKey:@"timestamp" ascending:YES] autorelease],
+                                [[[NSSortDescriptor alloc] initWithKey:@"hasHeadache" ascending:NO] autorelease],
+                                [[[NSSortDescriptor alloc] initWithKey:@"startHour" ascending:YES] autorelease],
+                                nil];
+            predicate = [NSPredicate predicateWithFormat:@"(isCompleted == %@) AND (timestamp >= %@)", 
+                         BHBoolNumber(YES), startDate ];
+            break;            
+        /*  
+        case BHFetchStyleCategoryItem:
+            sortDescriptors =  [NSArray arrayWithObjects:
+                                [[[NSSortDescriptor alloc] initWithKey:@"orderNo" ascending:YES] autorelease]      
+                                ,nil];
+            predicate = [NSPredicate predicateWithFormat:@"(isDefault == %@) AND (recordDeleted == %@)", 
+                         BHBoolNumber(NO), BHBoolNumber(NO)]; 
+            break;
+            
+        case BHFetchStyleItemByName:
+            predicate = [NSPredicate predicateWithFormat:@"name == [c] %@", params];
+            sortDescriptors =  [NSArray arrayWithObjects:
+                                [[[NSSortDescriptor alloc] initWithKey:@"orderNo" ascending:YES] autorelease]      
+                                ,nil]; 
+            break;
+            
+        case BHFetchStyleCheckList:
+            sortDescriptors =  [NSArray arrayWithObjects:
+                                [[[NSSortDescriptor alloc] initWithKey:@"isDefault" ascending:NO] autorelease],      
+                                [[[NSSortDescriptor alloc] initWithKey:@"orderNo" ascending:YES] autorelease],      
+                                nil];
+            predicate = [NSPredicate predicateWithFormat:@"(recordDeleted == %@)", BHBoolNumber(NO)]; 
+            break;
+            
+        default:
+            NSAssert(0,@"mk_3e9e1c5d_cc79_44ca_8dd6_aa30418726a9");
+        */
+        default:
+            NSAssert(0,@"mk_370f9f8f_1e17_431d_b43d_53df1cdc2faf");
+    }
+    [fetchRequest setSortDescriptors:sortDescriptors];
+    [fetchRequest setPredicate:predicate];
+    
+    // Edit the section name key path and cache name if appropriate.
+    // nil for section name key path means "no sections".
+    NSFetchedResultsController * aFetchedResultsController = 
+    [[[NSFetchedResultsController alloc] initWithFetchRequest:fetchRequest managedObjectContext:self.managedObjectContext 
+                                           sectionNameKeyPath:sectionNameKey cacheName:nil] autorelease];
+    [fetchRequest release];
+    [aFetchedResultsController bh_performFetch];
+    
+    self.hasRecords = aFetchedResultsController.sections.count != 0;
+    return aFetchedResultsController;
+}    
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)releaseCurrentEvent { 
+    [_migrainEvent release];
+    _migrainEvent = nil;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (BHMigrainEvent *)currentMigrainEvent:(BOOL)createIfNotYet {
+    if (!_migrainEvent && createIfNotYet) {  
+        _migrainEvent = [[NSEntityDescription insertNewObjectForEntityForName:ENTITY_MIGRAIN_EVENT 
+                                                 inManagedObjectContext:self.managedObjectContext] retain];
+        _migrainEvent.intensity = [NSNumber numberWithInt:BHPainIntensePainful];
+        
+        _migrainEvent.menstruating = [NSNumber numberWithInt:BHMenstruatingNo];
+    }
+    return _migrainEvent;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (BHMigrainEvent *)currentMigrainEvent {
+    NSAssert(_migrainEvent, @"mk_d23c5e66_6253_4360_af87_a2beda091468");
+    return _migrainEvent;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)showHelpTopic:(NSInteger)topic { 
+    NSString * topicText = nil;
+    // #warning Define help topics!
+    switch (topic) { 
+        case WarningTag_VisualDisturance_Help:
+            topicText = @"Altered vision, blind spots, bright lights";
+            break;
+            
+        case SymptomTag_MissedActivity_Help:
+            topicText = @"Missed work or school or avoided a leisure, family, or social activity";
+            break;
+            
+        case LifeTag_CaffeineWithdraw_Help:
+            topicText = @"Suddenly stopped a regular caffeine habit";	
+            break;
+            
+        case LifeTag_StressLetdown_Help:
+            topicText = @"Sudden stress relief";
+            break;
+            
+        default:
+            NSAssert(0,@"mk_45d2c95f_d55b_43e0_bf30_e1ab71940416");
+    }
+    UIAlertView * alert = [[[UIAlertView alloc] initWithTitle:topicText message:nil delegate:nil 
+                                    cancelButtonTitle:@"Done" otherButtonTitles:nil] autorelease];
+    [alert show];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (BOOL)hasHelpText:(NSInteger)recordTag { 
+    switch (recordTag) { 
+        case WarningTag_VisualDisturance_Help:
+        case SymptomTag_MissedActivity_Help:
+        case LifeTag_CaffeineWithdraw_Help:
+        case LifeTag_StressLetdown_Help: 
+            return YES;
+    }
+    return NO;
+}
+
+@end
+
+//==================================================================================================================================
+//==================================================================================================================================
+
+@implementation NSFetchedResultsController(BH) 
+
+- (BOOL)bh_performFetch { 
+    NSError *error = nil;
+    if (![self performFetch:&error]) {
+        [g_BH showError:error titleKey:@"ERR_FETCH_DB" explanationKey:@"ERR_FETCH_DB_D" forceShow:YES sender:@"FETCH"];
+        return NO;
+    }
+    return YES;
+}
+
+@end
+
+
+
+
+

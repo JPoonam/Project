@@ -1,0 +1,502 @@
+
+#import "BHClasses.h"
+#import "INGraphics.h"
+
+@implementation BHObject
+
+
+@end
+
+//==================================================================================================================================
+//==================================================================================================================================
+
+@implementation BHManagedObject
+
+
+@end
+
+//==================================================================================================================================
+//==================================================================================================================================
+
+@implementation BHCollectionItem 
+
+@dynamic name;
+@dynamic orderNo;
+@dynamic isDefault;
+@dynamic field1;
+@dynamic tag;
+@dynamic recordDeleted;
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (NSString *)displayName { 
+#ifdef DEBUG_MARK_CUSTOM_ITEMS
+    if (![self.isDefault boolValue]) { 
+        return [self.name stringByAppendingString:@" (custom)"];
+    }
+#endif
+    return self.name;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (NSComparisonResult)compareByOrderNo:(BHCollectionItem *)otherItem { 
+    return INCompareInt(self.orderNo.intValue, otherItem.orderNo.intValue);    
+}
+
+@end
+
+//==================================================================================================================================
+//==================================================================================================================================
+
+NSString * ENTITY_MIGRAIN_EVENT = @"MigrainEvent";
+NSString * ENTITY_LOCATION      = @"Location";
+NSString * ENTITY_WARNING       = @"Warning";
+NSString * ENTITY_SYMPTOM       = @"Symptom";
+NSString * ENTITY_TREATMENT     = @"Treatment";
+NSString * ENTITY_RELIEF        = @"Relief";
+NSString * ENTITY_FOOD          = @"Food";
+NSString * ENTITY_ENVIRONMENT   = @"Environment";
+NSString * ENTITY_LIFESTYLE     = @"Lifestyle";
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+BOOL BHTestLogFilterOption(BHReportFilterOption option, NSInteger screenMask) { 
+    NSInteger screenMaskBitOffset = -1;
+    switch (option) {
+        case BHReportFilterWarningSigns:
+            screenMaskBitOffset = BHScreenFilterRow_WarningSigns;
+            break;
+
+        case BHReportFilterLocation:
+            screenMaskBitOffset = BHScreenFilterRow_Location;
+            break;
+
+        case BHReportFilterSymptoms:
+            screenMaskBitOffset = BHScreenFilterRow_Symptoms;
+            break;
+
+        case BHReportFilterDiet:
+            screenMaskBitOffset = BHScreenFilterRow_Diet;
+            break;
+
+        case BHReportFilterLifestyle:
+        case BHReportFilterMenstruation:
+            screenMaskBitOffset = BHScreenFilterRow_Lifestyle_And_Menstruation;
+            break;
+
+        case BHReportFilterEnvironment:
+            screenMaskBitOffset = BHScreenFilterRow_Environment;
+            break;
+
+        case BHReportFilterNotes:
+            screenMaskBitOffset = BHScreenFilterRow_Notes;
+            break;
+            
+        default:
+            return NO;
+    }
+    return (screenMask & (1 << screenMaskBitOffset)) != 0; 
+}   
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+NSString * BHScreenFilterOptionToString(NSInteger option) { 
+    switch (option) {
+        case BHScreenFilterRow_WarningSigns:
+            return @"Warning signs";
+
+        case BHScreenFilterRow_Location:
+            return @"Location";
+
+        case BHScreenFilterRow_Symptoms:
+            return @"Symptoms";
+
+        case BHScreenFilterRow_Diet:
+            return @"Diet";
+
+        case BHScreenFilterRow_Lifestyle_And_Menstruation:
+            return @"Lifestyle";
+
+        case BHScreenFilterRow_Environment:
+            return @"Environment";
+
+        case BHScreenFilterRow_Notes:
+            return @"Notes";
+            
+        default:
+            break;
+    }
+    return @"?";
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+extern  BHReportFilterOptionInfo BHGetReportFilterOptionInfo(BHReportFilterOption option) { 
+    switch (option) {
+        case BHReportFilterWarningSigns:
+            return (BHReportFilterOptionInfo){ @"Warning signs", @selector(warnings) };
+            
+        case BHReportFilterLocation:
+            return (BHReportFilterOptionInfo){ @"Location",  @selector(locations)} ;
+
+        case BHReportFilterSymptoms:
+            return (BHReportFilterOptionInfo){@"Symptoms",  @selector(symptoms)} ;
+
+        case BHReportFilterDiet:
+            return (BHReportFilterOptionInfo){@"Diet",  @selector(foods)} ;
+
+        case BHReportFilterLifestyle:
+            return (BHReportFilterOptionInfo){@"Lifestyle",  @selector(lifestyles)} ;
+
+        case BHReportFilterEnvironment:
+            return (BHReportFilterOptionInfo){@"Environment",  @selector(environments)} ;
+
+        case BHReportFilterNotes:
+            return (BHReportFilterOptionInfo){@"Notes",  @selector(report_trimmedNote)};
+            
+        case BHReportFilterMenstruation:
+            return (BHReportFilterOptionInfo){@"Menstruation",  @selector(report_menstruation)} ;
+            
+        case BHReportFilterTreatment:
+            return (BHReportFilterOptionInfo){@"Treatment",  @selector(treatments)} ;
+            
+        case BHReportFilterRelief:
+            return (BHReportFilterOptionInfo){@"Relief",  @selector(reliefs)} ;
+            
+        default:
+            NSCAssert(0,@"mk_5130c3b4_0fe7_4b93_9085_dca3e5e0fc8b");
+    }
+    return (BHReportFilterOptionInfo){};
+}
+
+//==================================================================================================================================
+
+@implementation BHMigrainEvent 
+
+@synthesize userWantNotToBeAskedOfMenstruations = _userWantNotToBeAskedOfMenstruations;
+@synthesize screenReportHeight = _screenReportHeight;
+@synthesize screenReportChangeCounter = _screenReportChangeCounter;
+
+@dynamic hasHeadache;
+@dynamic timestamp;
+@dynamic locations;
+@dynamic warnings;
+@dynamic symptoms;
+@dynamic treatments;
+@dynamic foods;
+@dynamic reliefs;
+@dynamic environments;
+@dynamic skippedBreakfast; 
+@dynamic skippedDinner; 
+@dynamic skippedLunch; 
+@dynamic menstruating; 
+@dynamic fasting; 
+@dynamic intensity; 
+@dynamic duration; 
+@dynamic startHour;
+@dynamic note;
+@dynamic lifestyles;
+@dynamic yearMonth;
+@dynamic isCompleted;
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (NSString *)startHourString { 
+    NSInteger hour = self.startHour.intValue; 
+    INDateComponents comps = (INDateComponents) { 
+        .hour = hour
+    };
+    
+    return [[NSDate inru_dateFromComponents:comps] inru_formatWithKey:BH_HOURS];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (NSString *)durationString:(BOOL)shortForm { 
+    NSInteger hours = self.duration.intValue / 60;
+    NSString * timeString = @"";
+    if (!shortForm) { 
+        timeString = @":00";
+    }
+    NSString * hourString = hours == 1 ? @"hour" : @"hours";
+    return [NSString stringWithFormat:@"%d%@ %@", hours,timeString,hourString];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (NSMutableArray *)orderedCollectionItemsForSelector:(SEL)entitySelector includingCustomItems:(BOOL)includingCustomItems {
+    NSSet * set = [self performSelector:entitySelector];
+    NSMutableArray * a = [NSMutableArray arrayWithCapacity:set.count];
+    for (BHCollectionItem * item in set) {
+        if (!includingCustomItems && !item.isDefault.boolValue) { 
+            continue;    
+        }
+        [a addObject:item];
+    }
+    [a sortUsingSelector:@selector(compareByOrderNo:)];
+    return a;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (NSString *)report_trimmedNote {
+    return [self.note inru_trim];    
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (NSString *)report_menstruation {
+    switch (self.menstruating.intValue) { 
+        case BHMenstruatingYes:
+            return @"Yes";
+
+        case BHMenstruatingNo:
+            return @"No";
+            
+        default:
+            break;
+    }
+    return nil;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+/*
+- (NSNumber *)yearMonth { 
+    INDateComponents c = [self.timestamp inru_components]; 
+    return [NSNumber numberWithInt:c.year * 100 + c.month];
+}
+*/
+//----------------------------------------------------------------------------------------------------------------------------------
+/*
+- (NSString *)description { 
+    NSMutableString * s = [NSMutableString string];
+
+    void (^AddString)(NSString *) = ^(NSString * s1) { 
+        [s appendFormat:@"    %@\n",s1];   
+    };
+
+    void (^AddNumber)(NSString *) = ^(NSString * key) { 
+        AddString([NSString stringWithFormat:@"%@ = %d",key, [[self valueForKey:key] intValue]]);   
+    };
+
+    void (^Add)(NSString * ) = ^(NSString * key) { 
+        AddString([NSString stringWithFormat:@"%@ = %@",key, [self valueForKey:key]]);   
+    };
+    
+    void (^AddSet)(NSString * ) = ^(NSString * key) {
+        NSSet * set = [self valueForKey:key];
+        NSMutableArray * a = [NSMutableArray array];
+        for (BHCollectionItem * item in set) { 
+            [a addObject:item.name];
+        }
+        AddString([NSString stringWithFormat:@"%@ = {%@}", key, [a componentsJoinedByString:@", "]]);   
+    };
+    
+    AddNumber(@"hasHeadache");
+    AddNumber(@"skippedBreakfast");
+    AddNumber(@"skippedDinner");
+    AddNumber(@"skippedLunch");
+    AddNumber(@"menstruating");
+    AddNumber(@"fasting");
+    AddNumber(@"intensity");
+    AddNumber(@"duration");
+    AddNumber(@"startHour");
+    Add(@"timestamp");
+    AddSet(@"locations");
+    AddSet(@"warnings");
+    AddSet(@"symptoms");
+    AddSet(@"treatments");
+    AddSet(@"foods");
+    AddSet(@"reliefs");
+    AddSet(@"exposures");
+              
+    return [NSString stringWithFormat:@"{\n%@}\n",s];
+}
+*/
+
+@end
+
+//==================================================================================================================================
+//==================================================================================================================================
+/* 
+NSString * BHDayPostfix(NSInteger day) { 
+    NSString * postfix = nil;
+    switch (day) { 
+        case 1: 
+            postfix = @"st"; 
+            break;
+            
+        case 2: 
+            postfix = @"nd"; 
+            break;
+            
+        case 3: 
+            postfix = @"rd"; 
+            break;
+            
+        default:
+            postfix = @"th";
+    }   
+    return postfix;
+}
+*/
+//----------------------------------------------------------------------------------------------------------------------------------
+
+NSString * BHDateToString(NSDate * date, NSInteger format) {
+    date = [date inru_trimTime];
+    switch (format) { 
+        case BHdateFormatSimple:
+            {
+                if (!date || 0 == [date compare:[NSDate inru_todayMidnight]]) { 
+                    return @"Today";
+                } 
+
+                if (0 == [date compare:[[NSDate inru_todayMidnight] inru_incDay:-1]]) { 
+                    return @"Yesterday";
+                }
+                
+                return [date inru_formatWithKey:BH_SIMPLE_DATE]; //  stringByAppendingString:BHDayPostfix([date inru_components].day)];
+            }
+            break;
+            
+        case BHdateFormatLong:
+            return [date inru_formatWithKey:BH_LONG_DATE]; //  stringByAppendingString:BHDayPostfix([date inru_components].day)];
+
+        case BHdateFormatDay:
+            return [date inru_formatWithKey:BH_DAY];
+    }
+    
+    NSCAssert(0,@"mk_97a8661e_7282_41c2_8f02_9a4dccd2d22e");
+    return nil;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+BOOL BHStartDatesAreEqual(BHStartDate d1, BHStartDate d2) {
+    if (d1.dateKind == d2.dateKind) { 
+        if (d1.dateKind == BHStartDateIndividualDate) { 
+            return d1.ymd.year == d2.ymd.year && 
+                   d1.ymd.month == d2.ymd.month && 
+                   d1.ymd.day == d2.ymd.day;
+        } else { 
+            return YES;
+        }
+    }
+    return NO;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+NSDate * BHDateFromStartDate(BHStartDate d1) {
+    d1 = BHNormalizeStartDate(d1); 
+    NSDate * today = [NSDate inru_todayMidnight];
+    switch (d1.dateKind) { 
+        case BHStartDateAll:
+            return [today inru_incMonth:-20 * 100]; 
+            
+        case BHStartDateLast60:
+            return [today inru_incDay:-60];
+
+        case BHStartDateLast30:
+            return [today inru_incDay:-30];
+
+        case BHStartDateLast2Weeks:
+            return [[today inru_beginOfWeek] inru_incDay:-7];
+            
+        case BHStartDateIndividualDate:
+            return [NSDate inru_dateFromComponents:d1.ymd];
+            
+        default:
+            NSCAssert(0, @"mk_2699151f_b441_48cf_a930_6e5d3b7af4a6");
+    }
+    return [today inru_incMonth:-20 * 100]; 
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+BHStartDate BHNormalizeStartDate(BHStartDate d1) { 
+    d1.dateKind = INNormalizeIntegerForRange(d1.dateKind, 0, BHStartDateLast-1);
+    if (d1.dateKind == BHStartDateIndividualDate) { 
+        NSDate * date = [NSDate inru_dateFromComponents:d1.ymd];
+        if (!date || [date timeIntervalSinceNow] < -BH_MAX_DAYS_AGO * 24 * 3600 || [date timeIntervalSinceNow] > 0) { 
+            d1.dateKind = BHStartDateLast60;
+        }
+    }
+    if (d1.dateKind != BHStartDateIndividualDate) {
+        bzero(&d1.ymd, sizeof(d1.ymd));
+    }
+    return d1;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+NSString * BHStartDateToString(BHStartDate startDate) { 
+    switch (startDate.dateKind) {
+        case BHStartDateAll:
+            return @"All data";
+
+        case BHStartDateLast60:
+            return @"Last 60 days";
+            
+
+        case BHStartDateLast30:
+            return @"Last 30 days";
+            
+
+        case BHStartDateLast2Weeks:
+            return @"Past 2 weeks";
+            
+
+        case BHStartDateIndividualDate:
+            return BHDateToString([NSDate inru_dateFromComponents:startDate.ymd], BHdateFormatSimple);
+            
+            
+        default:
+            NSCAssert(0, @"mk_12f6ac3c_5821_4963_837c_c624df70cdd3");
+    }
+    return nil;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+NSNumber * BHBoolNumber(BOOL value) {  
+     return [NSNumber numberWithInt:value];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+UIColor  * BHColorForPainIntense(BHPainIntense intense) {
+    switch (intense) { 
+        case BHPainIntenseModerate:
+            return [UIColor inru_colorFromRGBA:IN_DEC2RGBA(236,179,17,255)];
+            
+        case BHPainIntensePainful:
+            return [UIColor inru_colorFromRGBA:IN_DEC2RGBA(232,108,0,255)];
+
+        case BHPainIntenseVeryPainful:
+            return [UIColor inru_colorFromRGBA:IN_DEC2RGBA(183,46,43,255)];
+            
+        default:
+            NSCAssert(0,@"mk_5f261c06_92cd_4bad_a2bb_019114e23d1e");
+    }
+    return nil;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+NSString * BHPainIntenceToString(BHPainIntense intense) { 
+    switch (intense) {
+        case BHPainIntenseModerate:
+            return @"Mild";
+
+        case BHPainIntensePainful:
+            return @"Moderate";
+
+        case BHPainIntenseVeryPainful:
+            return @"Severe";
+            
+    }
+    return @"?";
+}
+

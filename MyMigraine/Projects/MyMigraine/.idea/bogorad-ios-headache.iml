@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="WEB_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <content url="file://$MODULE_DIR$/../../InRuCode/Classes/Common/INCommonTypes.h">
+      <sourceFolder url="file://$MODULE_DIR$/../../InRuCode/Classes/Common/INCommonTypes.h" isTestSource="false" />
+    </content>
+    <content url="file://$MODULE_DIR$/../../InRuCode/Classes/Common/INCommonTypes.m">
+      <sourceFolder url="file://$MODULE_DIR$/../../InRuCode/Classes/Common/INCommonTypes.m" isTestSource="false" />
+    </content>
+    <content url="file://$MODULE_DIR$/../../InRuCode/Classes/Common/INFormat.h">
+      <sourceFolder url="file://$MODULE_DIR$/../../InRuCode/Classes/Common/INFormat.h" isTestSource="false" />
+    </content>
+    <content url="file://$MODULE_DIR$/../../InRuCode/Classes/Common/INFormat.m">
+      <sourceFolder url="file://$MODULE_DIR$/../../InRuCode/Classes/Common/INFormat.m" isTestSource="false" />
+    </content>
+    <content url="file://$MODULE_DIR$/../../InRuCode/Classes/Common/INLocalization.h">
+      <sourceFolder url="file://$MODULE_DIR$/../../InRuCode/Classes/Common/INLocalization.h" isTestSource="false" />
+    </content>
+    <content url="file://$MODULE_DIR$/../../InRuCode/Classes/Common/INLocalization.m">
+      <sourceFolder url="file://$MODULE_DIR$/../../InRuCode/Classes/Common/INLocalization.m" isTestSource="false" />
+    </content>
+    <content url="file://$MODULE_DIR$/../../InRuCode/Classes/Common/INObject.h">
+      <sourceFolder url="file://$MODULE_DIR$/../../InRuCode/Classes/Common/INObject.h" isTestSource="false" />
+    </content>
+    <content url="file://$MODULE_DIR$/../../InRuCode/Classes/Common/INObject.m">
+      <sourceFolder url="file://$MODULE_DIR$/../../InRuCode/Classes/Common/INObject.m" isTestSource="false" />
+    </content>
+    <content url="file://$MODULE_DIR$/../../InRuCode/Classes/Other/INCoreData.h">
+      <sourceFolder url="file://$MODULE_DIR$/../../InRuCode/Classes/Other/INCoreData.h" isTestSource="false" />
+    </content>
+    <content url="file://$MODULE_DIR$/../../InRuCode/Classes/Other/INCoreData.m">
+      <sourceFolder url="file://$MODULE_DIR$/../../InRuCode/Classes/Other/INCoreData.m" isTestSource="false" />
+    </content>
+    <content url="file://$MODULE_DIR$/../../InRuCode/Classes/UI/INErrorAlertCenter.h">
+      <sourceFolder url="file://$MODULE_DIR$/../../InRuCode/Classes/UI/INErrorAlertCenter.h" isTestSource="false" />
+    </content>
+    <content url="file://$MODULE_DIR$/../../InRuCode/Classes/UI/INErrorAlertCenter.m">
+      <sourceFolder url="file://$MODULE_DIR$/../../InRuCode/Classes/UI/INErrorAlertCenter.m" isTestSource="false" />
+    </content>
+    <content url="file://$MODULE_DIR$/../../InRuCode/Classes/UI/INGraphics.h">
+      <sourceFolder url="file://$MODULE_DIR$/../../InRuCode/Classes/UI/INGraphics.h" isTestSource="false" />
+    </content>
+    <content url="file://$MODULE_DIR$/../../InRuCode/Classes/UI/INGraphics.m">
+      <sourceFolder url="file://$MODULE_DIR$/../../InRuCode/Classes/UI/INGraphics.m" isTestSource="false" />
+    </content>
+    <content url="file://$MODULE_DIR$/../../InRuCode/Classes/UI/INIPad.h">
+      <sourceFolder url="file://$MODULE_DIR$/../../InRuCode/Classes/UI/INIPad.h" isTestSource="false" />
+    </content>
+    <content url="file://$MODULE_DIR$/../../InRuCode/Classes/UI/INIPad.m">
+      <sourceFolder url="file://$MODULE_DIR$/../../InRuCode/Classes/UI/INIPad.m" isTestSource="false" />
+    </content>
+    <content url="file://$MODULE_DIR$/../../InRuCode/Classes/UI/INPanel.h">
+      <sourceFolder url="file://$MODULE_DIR$/../../InRuCode/Classes/UI/INPanel.h" isTestSource="false" />
+    </content>
+    <content url="file://$MODULE_DIR$/../../InRuCode/Classes/UI/INPanel.m">
+      <sourceFolder url="file://$MODULE_DIR$/../../InRuCode/Classes/UI/INPanel.m" isTestSource="false" />
+    </content>
+    <content url="file://$MODULE_DIR$/../../InRuCode/Classes/UI/INPopupView.h">
+      <sourceFolder url="file://$MODULE_DIR$/../../InRuCode/Classes/UI/INPopupView.h" isTestSource="false" />
+    </content>
+    <content url="file://$MODULE_DIR$/../../InRuCode/Classes/UI/INPopupView.m">
+      <sourceFolder url="file://$MODULE_DIR$/../../InRuCode/Classes/UI/INPopupView.m" isTestSource="false" />
+    </content>
+    <content url="file://$MODULE_DIR$/../../InRuCode/Classes/UI/INSwitch.h">
+      <sourceFolder url="file://$MODULE_DIR$/../../InRuCode/Classes/UI/INSwitch.h" isTestSource="false" />
+    </content>
+    <content url="file://$MODULE_DIR$/../../InRuCode/Classes/UI/INSwitch.m">
+      <sourceFolder url="file://$MODULE_DIR$/../../InRuCode/Classes/UI/INSwitch.m" isTestSource="false" />
+    </content>
+    <content url="file://$MODULE_DIR$/../../InRuCode/Classes/UI/INView.h">
+      <sourceFolder url="file://$MODULE_DIR$/../../InRuCode/Classes/UI/INView.h" isTestSource="false" />
+    </content>
+    <content url="file://$MODULE_DIR$/../../InRuCode/Classes/UI/INView.m">
+      <sourceFolder url="file://$MODULE_DIR$/../../InRuCode/Classes/UI/INView.m" isTestSource="false" />
+    </content>
+    <content url="file://$MODULE_DIR$" />
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+</module>
+

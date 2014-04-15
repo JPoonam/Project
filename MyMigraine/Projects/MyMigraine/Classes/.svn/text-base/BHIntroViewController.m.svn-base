@@ -1,0 +1,44 @@
+
+#import "BHIntroViewController.h"
+#import "BH.h"
+#import "BHAppDelegate.h"
+
+@implementation BHIntroViewController
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)dealloc {
+    [_acceptButton release];
+    [super dealloc];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    _acceptButton.enabled = NO;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)buttonPressed:(id)sender { 
+    [g_AppDelegate handleTermsAccepted];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (BOOL)makeCoolBackground { 
+    return NO;   
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (BOOL)webView:(UIWebView *)webView shouldStartLoadWithRequest:(NSURLRequest *)request navigationType:(UIWebViewNavigationType)navigationType { 
+    if ([request.URL.scheme isEqualToString:@"hottabytch"]) {
+        _acceptButton.enabled = YES;
+        return NO;
+    }
+    return YES;
+}
+
+@end

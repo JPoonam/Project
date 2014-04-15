@@ -1,0 +1,981 @@
+
+#import "BHReports.h"
+#import "BH.h"
+#import "BHChart_PageView.h"
+
+#define HA_BAND_HEIGHT              24
+#define BAND_TOP_OFFSET_HEIGHT      5
+#define BAND_LINE_HEIGHT            14
+#define BAND_BOTTOM_OFFSET_HEIGHT   7
+#define SEPARATOR_HEIGHT            1
+#define LABEL_WIDTH_NOTES           220
+#define BANDLE_LINE_FONT_SIZE       12
+#define HEADER_LABEL_RIGHT_PAD      8
+// #define LABEL_WIDTH_ROW0            184
+
+#define LABEL_0_TAG                 99879
+
+@implementation BHMigrainEventScreenReportBandView
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)internalInit { 
+   // UILabel * _headerLabel;
+   // UILabel * _row0Label;
+    CGRect r = self.bounds;
+    CGRect r2 = r;
+    r2.size.height = 16;
+    UIImageView * iv = [[UIImageView alloc] initWithFrame:r2];
+    iv.image = [UIImage imageNamed:@"vertical_cell_gradient.png"];
+    [self addSubview:iv];
+    [iv release];
+    iv.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleBottomMargin;
+    
+    r2.origin.y = BAND_TOP_OFFSET_HEIGHT;
+    r2.size.height = BAND_LINE_HEIGHT;
+    UILabel * label = [[UILabel alloc] initWithFrame:INRectInset(r2, r2.size.width-85, 0, HEADER_LABEL_RIGHT_PAD, 0)];
+    label.font = [UIFont boldSystemFontOfSize:10];
+    label.textColor = [UIColor inru_colorFromRGBA:0xbdbdbdff];
+    label.textAlignment = UITextAlignmentRight;
+    //label.shadowColor = shadowColor;
+    //label.shadowOffset = CGSizeMake(0, 1);
+    label.backgroundColor = [UIColor clearColor];
+    [self addSubview:label];
+    [label release];
+    _headerLabel = label;
+
+    label = [[UILabel alloc] initWithFrame:CGRectMake(8, r2.origin.y, 20, r2.size.height)];
+    label.font = [UIFont systemFontOfSize:BANDLE_LINE_FONT_SIZE];
+    label.textColor = [UIColor blackColor];
+    label.lineBreakMode = UILineBreakModeTailTruncation;
+    label.backgroundColor = [UIColor clearColor];
+    label.tag = LABEL_0_TAG;
+    [self addSubview:label];
+    [label release];
+    _row0Label = label;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (id)initWithFrame:(CGRect)frame {
+    self = [super initWithFrame:frame];
+    if (self != nil) {
+        [self internalInit];
+    }
+    return self;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (UILabel *)headerLabel { 
+    return _headerLabel;   
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (UILabel *)row0Label { 
+    return _row0Label;   
+}
+
+@end
+
+//==================================================================================================================================
+//==================================================================================================================================
+
+
+@implementation BHMigrainEventScreenReportView 
+
+@synthesize event = _event;
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (BOOL)createBandAtIndex:(NSInteger)index forOption:(BHReportFilterOption)option rect:(CGRect *)r {
+    BHReportFilterOptionInfo info = BHGetReportFilterOptionInfo(option);
+    NSInteger lineCount = 0;
+    NSMutableArray * items = [NSMutableArray array];
+    switch (option) { 
+        case BHReportFilterNotes: 
+        case BHReportFilterMenstruation: 
+            {
+                NSString * string = [_event performSelector:info.entitySelector];
+                if (string.length) { 
+                    [items addObject:[[BHObject newWithName:string] autorelease]];
+                }
+            }
+            break;
+            
+        default:
+            items = [_event orderedCollectionItemsForSelector:info.entitySelector includingCustomItems:YES /* commented out by Michael request NO*/];
+    }
+    
+    if (option == BHReportFilterDiet) { 
+        if (_event.fasting.boolValue) { 
+            [items insertObject:[[BHObject newWithName:@"Fasting"] autorelease] atIndex:0];    
+        }
+        BOOL b = _event.skippedBreakfast.boolValue;        
+        BOOL d = _event.skippedDinner.boolValue;        
+        BOOL l = _event.skippedLunch.boolValue;
+        if (b || d || l ) { 
+            NSMutableArray * a = [NSMutableArray array];
+            if (b) { 
+                [a addObject:@"Breakfast"];
+            }
+            if (l) { 
+                [a addObject:@"Lunch"];
+            }
+            if (d) { 
+                [a addObject:@"Dinner"];
+            }
+            NSString * name = [NSString stringWithFormat:@"Skipped %@",[a componentsJoinedByString:@", "]]; 
+            [items insertObject:[[BHObject newWithName:name] autorelease] atIndex:0]; 
+        }
+    }
+    
+    lineCount = items.count;
+    if (!lineCount) { 
+        return NO;
+    }
+    
+    if (!_bands[index]) { 
+        _bands[index] = [[BHMigrainEventScreenReportBandView alloc] initWithFrame:CGRectMake(0,0,r->size.width,100)];
+        [self insertSubview: _bands[index]  belowSubview:_verticalGradient];
+        [ _bands[index]  release];
+        // _bands[index] .backgroundColor = [UIColor clearColor];
+    }
+    BHMigrainEventScreenReportBandView * v =  _bands[index]; 
+    
+    CGFloat height = BAND_TOP_OFFSET_HEIGHT + BAND_LINE_HEIGHT * lineCount + BAND_BOTTOM_OFFSET_HEIGHT;
+    r->size.height = height;
+    v.frame = *r;
+    r->origin.y += r->size.height;
+
+    v.headerLabel.text = info.name;
+    CGFloat headerTextWidth = [info.name sizeWithFont:v.headerLabel.font].width;
+    CGRect rLabel = v.row0Label.frame;
+    int labelNo = 0;
+    
+    if (option == BHReportFilterNotes) {
+        v.row0Label.text = [[items objectAtIndex:0] name];
+        CGSize sz = [v.row0Label.text sizeWithFont:v.row0Label.font constrainedToSize:CGSizeMake(LABEL_WIDTH_NOTES, 1000) lineBreakMode:UILineBreakModeTailTruncation];
+        rLabel.size.width = LABEL_WIDTH_NOTES + 1; //
+        rLabel.size.height = sz.height;
+        v.row0Label.frame = rLabel;
+        v.row0Label.numberOfLines = 0;
+        labelNo++;
+        
+        //v.row0Label.backgroundColor = [UIColor redColor]; //clearColor];
+        
+    } else {
+        //v.row0Label.backgroundColor = [UIColor clearColor];
+
+        rLabel.size.width = v.bounds.size.width - rLabel.origin.x - headerTextWidth - HEADER_LABEL_RIGHT_PAD - 12; // padding 
+        rLabel.size.height = BAND_LINE_HEIGHT;
+        v.row0Label.frame = rLabel;
+        v.row0Label.numberOfLines = 1;
+        
+        // 
+        rLabel.size.width = 250;
+        for (id item in items) {
+            UILabel * lbl = nil;
+            if (labelNo > 0) {
+                lbl = (id)[v viewWithTag:LABEL_0_TAG + labelNo];
+                if (!lbl) {
+                    CGRect r2 = rLabel;
+                    r2.origin.y += BAND_LINE_HEIGHT * labelNo;
+                    lbl = [[UILabel alloc] initWithFrame:r2];
+                    lbl.font = [UIFont systemFontOfSize: BANDLE_LINE_FONT_SIZE];
+                    lbl.textColor = [UIColor blackColor];
+                    lbl.backgroundColor = [UIColor clearColor];
+                    lbl.tag = LABEL_0_TAG + labelNo;
+                    [v addSubview:lbl];
+                    [lbl release];
+                }
+            } else { 
+                lbl = v.row0Label;   
+            }
+            lbl.text = [item name];
+            labelNo++;
+        }
+    }
+
+    while (1) { 
+        UIView * l = [v viewWithTag:LABEL_0_TAG + labelNo++];
+        if (!l) { 
+            break;
+        }
+        [l removeFromSuperview];
+    }
+    
+    return YES;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)createHeadacheBandAtRect:(CGRect *)r { 
+    r->size.height = HA_BAND_HEIGHT;
+    
+    static UIColor * shadowColor = nil;
+    static UIColor * whiteColor = nil;
+    if (!shadowColor) { 
+        shadowColor = [[UIColor inru_colorFromRGBA:0x00000032] retain];   
+        whiteColor = [[UIColor inru_colorFromRGBA:0xffffffA5] retain];   
+    }
+    
+    if (!_headacheBand) { 
+        _headacheBand = [[UIView alloc] initWithFrame:*r];
+        [self insertSubview:_headacheBand belowSubview:_verticalGradient];
+        [_headacheBand release];
+        
+        UILabel * label = [[UILabel alloc] initWithFrame:INRectInset(_headacheBand.bounds, 8, 0, 50, 0)];
+        label.font = [UIFont boldSystemFontOfSize:13];
+        label.textColor = [UIColor whiteColor];
+        label.shadowColor = shadowColor;
+        label.shadowOffset = CGSizeMake(0, 1);
+        [_headacheBand addSubview:label];
+        [label release];
+        _headacheHourLabel = label;
+
+        label = [[UILabel alloc] initWithFrame:INRectInset(_headacheBand.bounds, 4, 0, 50, 0)];
+        label.font = [UIFont systemFontOfSize:13];
+        label.textColor = [UIColor whiteColor];
+        label.shadowColor = shadowColor;
+        label.shadowOffset = CGSizeMake(0, 1);
+        [_headacheBand addSubview:label];
+        [label release];
+        _headacheLastedLabel = label;
+        _headacheLastedLabel.text = @"lasted";
+
+        label = [[UILabel alloc] initWithFrame:INRectInset(_headacheBand.bounds, 4, 0, 50, 0)];
+        label.font = [UIFont boldSystemFontOfSize:13];
+        label.textColor = [UIColor whiteColor];
+        label.shadowColor = shadowColor;
+        label.shadowOffset = CGSizeMake(0, 1);
+        [_headacheBand addSubview:label];
+        [label release];
+        _headacheHour2Label = label;
+        
+        label = [[UILabel alloc] initWithFrame:INRectInset(_headacheBand.bounds, 200, 0, 8, 0)];
+        label.font = [UIFont boldSystemFontOfSize:10];
+        label.textColor = whiteColor;
+        label.textAlignment = UITextAlignmentRight;
+        label.shadowColor = shadowColor;
+        label.shadowOffset = CGSizeMake(0, 1);
+        label.backgroundColor = [UIColor clearColor];
+        [_headacheBand addSubview:label];
+        [label release];
+        label.text = @"Headache";
+
+    } else { 
+        _headacheBand.frame = *r;
+    }
+    UIColor * clr = BHColorForPainIntense(_event.intensity.intValue);
+    _headacheBand.backgroundColor = clr; 
+
+    CGRect r2 = _headacheHourLabel.frame;
+    _headacheHourLabel.text = [_event startHourString];
+    r2.size.width = [_headacheHourLabel.text sizeWithFont:_headacheHourLabel.font].width;
+    _headacheHourLabel.frame = r2;
+    _headacheHourLabel.backgroundColor = clr; 
+    
+    r2.origin.x += r2.size.width + 4;
+    r2.size.width = [_headacheLastedLabel.text sizeWithFont:_headacheLastedLabel.font].width;
+    _headacheLastedLabel.frame = r2;
+    _headacheLastedLabel.backgroundColor = clr; 
+    
+    r2.origin.x += r2.size.width + 4;
+    _headacheHour2Label.text = [_event durationString:YES]; 
+    r2.size.width = [_headacheHour2Label.text sizeWithFont:_headacheHour2Label.font].width;
+    _headacheHour2Label.frame = r2;
+    _headacheHour2Label.backgroundColor = clr; 
+    
+    r->origin.y += r->size.height;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)updateControls { 
+    _timeStampLabel.text = BHDateToString(_event.timestamp, BHdateFormatDay);
+    
+    NSInteger currentBandIndex = 0;
+    CGRect r = CGRectMake(51, 0, 320-51, 0);
+    BOOL hasHeadache = _event.hasHeadache.boolValue;
+    BOOL shouldPutHeadacheBand = hasHeadache;
+    
+    for (int i =0; i < BHReportFilterLast; i++) { 
+        
+        if (!BHTestLogFilterOption(i,g_BH.logFilterItemMask1)) { 
+            continue;
+        }
+        
+        if (!hasHeadache && i <= BHReportLastHeadacheOption1) { 
+            continue;   
+        }
+        
+        if (shouldPutHeadacheBand) { 
+            if (i != BHReportFilterWarningSigns) { 
+                [self createHeadacheBandAtRect:&r];    
+                shouldPutHeadacheBand = NO;
+            }
+        }
+        
+        if ([self createBandAtIndex:currentBandIndex forOption:i rect:&r]) { 
+            currentBandIndex++;   
+        }
+        
+        if (shouldPutHeadacheBand) { 
+            [self createHeadacheBandAtRect:&r];    
+            shouldPutHeadacheBand = NO;
+        } 
+    }
+    
+    if (shouldPutHeadacheBand) { 
+        [self createHeadacheBandAtRect:&r];    
+        // shouldPutHeadacheBand = NO;
+    } 
+    
+    for (int i = currentBandIndex; i < BHReportFilterLast; i++) { 
+        [_bands[i] removeFromSuperview];
+        _bands[i] = nil;
+    }
+    if (!hasHeadache) { 
+        [_headacheBand removeFromSuperview]; 
+        _headacheBand = nil;
+        _headacheHourLabel = nil;
+        _headacheLastedLabel = nil;        
+        _headacheHour2Label = nil;        
+    }
+}
+
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
++ (CGFloat)heightForEvent:(BHMigrainEvent *)event {
+    
+    BOOL hasHeadache = event.hasHeadache.boolValue;
+    CGFloat result = hasHeadache ? HA_BAND_HEIGHT : 0;
+    for (int i =0; i < BHReportFilterLast; i++) { 
+        
+        if (!BHTestLogFilterOption(i,g_BH.logFilterItemMask1)) { 
+            continue;
+        }
+        
+        if (!hasHeadache && i <= BHReportLastHeadacheOption1) { 
+            continue;   
+        }
+        
+        NSInteger lineCount = 0;
+        BHReportFilterOptionInfo info = BHGetReportFilterOptionInfo(i);
+        switch (i) {
+            case BHReportFilterNotes: 
+            case BHReportFilterMenstruation:
+                {
+                    NSString * string = [event performSelector:info.entitySelector];
+                    if (string.length) { 
+                       CGSize lineSize = [string sizeWithFont:[UIFont systemFontOfSize:BANDLE_LINE_FONT_SIZE] constrainedToSize:
+                                                 CGSizeMake(LABEL_WIDTH_NOTES, 1000) lineBreakMode:UILineBreakModeTailTruncation];
+                       result += BAND_TOP_OFFSET_HEIGHT + lineSize.height + BAND_BOTTOM_OFFSET_HEIGHT; 
+                    }
+                }
+                break;
+            
+            default:  
+                { 
+                    NSSet * set = [event performSelector:info.entitySelector];
+                    for (BHCollectionItem * item in set) { 
+                        // mk:commented out by Michael request if (item.isDefault.boolValue) { 
+                            lineCount++;   
+                        //}
+                    }       
+                    if (i == BHReportFilterDiet) { 
+                        if (event.fasting.boolValue) {
+                            lineCount++;
+                        }
+                        if (event.skippedBreakfast.boolValue || event.skippedDinner.boolValue || event.skippedLunch.boolValue) {
+                            lineCount++;
+                        }
+                    }
+                    if (lineCount) { 
+                        result += BAND_TOP_OFFSET_HEIGHT + BAND_LINE_HEIGHT * lineCount + BAND_BOTTOM_OFFSET_HEIGHT; 
+                    }
+                }
+        }
+    }
+
+    return MAX(result, (HA_BAND_HEIGHT + BAND_TOP_OFFSET_HEIGHT + BAND_LINE_HEIGHT + BAND_BOTTOM_OFFSET_HEIGHT) /* ha band + 1 row */) + SEPARATOR_HEIGHT;    
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
++ (BOOL)testForEvent:(BHMigrainEvent *)event {
+     
+    if (event.hasHeadache.boolValue) {
+        return YES;
+    }
+
+    NSInteger filterMask1 = g_BH.logFilterItemMask1;
+    for (int i = BHReportLastHeadacheOption1+1; i < BHReportFilterLast; i++) { 
+        
+        if (!BHTestLogFilterOption(i,filterMask1)) { 
+            continue;
+        }
+        
+        BHReportFilterOptionInfo info = BHGetReportFilterOptionInfo(i);
+        switch (i) {
+            case BHReportFilterNotes: 
+            case BHReportFilterMenstruation: 
+                {
+                    NSString * note = [event performSelector:info.entitySelector];
+                    if (note.length) { 
+                        return YES;
+                    }
+                }
+                break;
+                
+            case BHReportFilterDiet:
+                if (event.fasting.boolValue) {
+                    return YES;
+                }
+                if (event.skippedBreakfast.boolValue || event.skippedDinner.boolValue || event.skippedLunch.boolValue) {
+                    return YES;
+                }
+                // no break here!!!! 
+                
+            default:
+                {
+                    NSSet * set = [event performSelector:info.entitySelector];
+                    for (BHCollectionItem * item in set) { 
+                        //mk:commented out by Michael request  if (item.isDefault.boolValue) { 
+                            return YES;   
+                        //}
+                    }
+                }
+        }       
+    }
+    return NO;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)setEvent:(BHMigrainEvent *)event { 
+    //if (event != _event) { 
+        [_event release];
+        _event = [event retain];
+        [self updateControls];
+    //}
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)dealloc {
+    [_event release];
+    [_timeStampLabel release];
+    [_verticalGradient release];
+    [super dealloc];
+}
+
+@end
+
+
+#define PDF_PAGE_WIDTH  612
+#define PDF_PAGE_HEIGHT 792
+
+#define PDF_HOR_PADDING ((612 - 502) / 2)
+
+#define PDF_VER_PADDING                        20
+#define PDF_TOP_BANNER_HEIGHT                  50
+#define PDF_VER_PADDING_FROM_BANNER_TO_CONTENT 8
+#define PDF_SECTION_HEIGHT                     28
+#define PDF_BETWEEN_SECTION_PAD                3
+
+#define PDF_LEFT_BAND_WIDTH       50
+#define PDF_ITEM_TEXT_OFFSET      8
+#define PDF_ITEM_TEXT_TOP_PAD     3
+#define PDF_ITEM_TEXT_BOTTOM_PAD  3
+#define PDF_CAPTION_WIDTH         85
+#define PDF_HEADACHE_HEIGHT       24
+
+
+//==================================================================================================================================
+//==================================================================================================================================
+
+@implementation BHReportGenerator 
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (id)init {
+    self = [super init];
+    if (self != nil) {
+        _grayColor = [[UIColor inru_colorFromRGBA:0xe7e7e7FF] retain];
+        _grayBorderColor = [[UIColor inru_colorFromRGBA:0xABABABFF] retain];
+    }
+    return self;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)dealloc {
+    [_grayColor release];
+    [_grayBorderColor release];
+    [super dealloc];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
++ (BOOL)canPrint { 
+    if (INSystemVersionEqualsOrGreater(4, 2, 0)) { 
+        if (NSClassFromString(@"UIPrintInteractionController")) { 
+            return [UIPrintInteractionController isPrintingAvailable];
+        }
+    }
+    return NO;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)closePage { 
+    if (_pageOpened) { 
+        _pageOpened = NO;
+    }
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)drawRect:(CGRect)r withColor:(UIColor *)color { 
+    CGContextRef ctx = UIGraphicsGetCurrentContext();
+    CGContextSetStrokeColorWithColor(ctx, color.CGColor);
+    CGContextSetLineWidth(ctx, 0.5);
+    CGContextStrokeRect(ctx, r);
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)fillRect:(CGRect)r withColor:(UIColor *)color { 
+    CGContextRef ctx = UIGraphicsGetCurrentContext();
+    CGContextSetFillColorWithColor(ctx, color.CGColor);
+    CGContextFillRect(ctx, r);
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)drawLineFrom:(CGPoint)p1 to:(CGPoint)p2 color:(UIColor *)color { 
+    CGContextRef ctx = UIGraphicsGetCurrentContext();
+    CGContextSetStrokeColorWithColor(ctx, color.CGColor);
+    CGContextBeginPath(ctx);
+    CGContextMoveToPoint(ctx, p1.x, p1.y);
+    CGContextAddLineToPoint(ctx, p2.x, p2.y);
+    CGContextSetLineWidth(ctx, 0.5);
+    CGContextStrokePath(ctx);
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (CGFloat)drawString:(NSString *)string inRect:(CGRect)rect font:(UIFont *)font alignment:(UITextAlignment)alignment color:(UIColor *)color {
+    CGSize sz = [string sizeWithFont:font];
+    rect.origin.y = rect.origin.y + round((rect.size.height - sz.height)/2);
+    rect.size.height = sz.height;
+    [color set];
+    [string drawInRect:rect withFont:font lineBreakMode:UILineBreakModeTailTruncation alignment:alignment];
+    return sz.width;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)startPage {
+    [self closePage];
+    if (!_pageOpened) { 
+        _pageNumber++;
+        _pageOpened = YES;
+        // UIGraphicsBeginPDFPageWithInfo(CGRectMake(0, 0, PDF_PAGE_WIDTH, PDF_PAGE_HEIGHT), nil);
+        UIGraphicsBeginPDFPage();
+        CGRect r  = CGRectMake(PDF_HOR_PADDING, PDF_VER_PADDING, PDF_PAGE_WIDTH - 2 * PDF_HOR_PADDING, 0);
+        
+        // top banner - frame
+        // CGRect topRect = r;
+        // topRect.size.height = PDF_TOP_BANNER_HEIGHT;
+        // [self drawRect:topRect withColor:_grayBorderColor];
+        
+        
+        UIImage * img = [UIImage imageNamed:@"printed_header.png"];
+        CGSize sz = img.size;
+        CGRect topHeaderRect = CGRectMake(PDF_HOR_PADDING, 24, sz.width/4, sz.height/4);
+        [img drawInRect:topHeaderRect];
+        
+        /*
+        // top banner - book
+        UIImage * img = [UIImage imageNamed:@"book_pdf.png"];
+        CGSize sz = img.size;
+        CGFloat scale = 3.0;
+        CGRect imgRect = CGRectMake(r.origin.x + 14, r.origin.y +  8, sz.width / scale, sz.height / scale);
+        //r.size.height = sz.height * r.size.width / sz.width;
+        [img drawInRect:imgRect];
+        
+        // top banner - caption
+        [self drawString:PDF_HEADER inRect:INRectInset(topRect, 40, 0, PDF_ITEM_TEXT_OFFSET, 0) font:[UIFont boldSystemFontOfSize:20]  
+               alignment:UITextAlignmentLeft color:[UIColor inru_colorFromRGBA:0x006699FF]];
+        
+        // top banner - page no
+        NSString * pageNo = [NSString stringWithFormat:@"Page %d",_pageNumber];
+        UIFont * fnt = [UIFont boldSystemFontOfSize:10];
+        [self drawString:pageNo inRect:INRectInset(topRect, 0, 0, PDF_ITEM_TEXT_OFFSET, 0) font:fnt 
+                             alignment:UITextAlignmentRight color:[UIColor blackColor]];
+        */
+        
+        // start calc working area 
+        _pageRestSpace = CGRectMake(r.origin.x, 
+                                    r.origin.y + PDF_TOP_BANNER_HEIGHT + PDF_VER_PADDING_FROM_BANNER_TO_CONTENT, 
+                                    r.size.width, 
+                                    0);
+        
+        /*
+        // bottom banner 
+        UIImage * img1 = [UIImage imageNamed:@"box.png"];
+        CGSize sz1 = img1.size;
+        UIImage * img2 = [UIImage imageNamed:@"relief-starts.png"];
+        CGSize sz2 = img2.size;
+        UIImage * img3 = [UIImage imageNamed:@"save-1.png"];
+        CGSize sz3 = img3.size;
+        CGFloat gap = sz1.width / 4;
+        CGFloat fullWidth = sz1.width + sz2.width + sz3.width + gap * 2;
+        CGFloat scale = fullWidth / (PDF_PAGE_WIDTH  - PDF_HOR_PADDING * 2);
+        CGRect imgR;
+        imgR.origin.x = PDF_HOR_PADDING;
+        imgR.size.width  = sz1.width / scale;
+        imgR.size.height = sz1.height / scale;
+        imgR.origin.y = PDF_PAGE_HEIGHT - PDF_VER_PADDING - imgR.size.height;
+        [img1 drawInRect:imgR];
+        imgR.origin.x += imgR.size.width + gap / scale;
+        imgR.size.width  = sz2.width / scale;
+        imgR.size.height = sz2.height / scale;
+        [img2 drawInRect:imgR];
+        imgR.origin.x += imgR.size.width + gap / scale;
+        imgR.size.width  = sz3.width / scale;
+        imgR.size.height = sz3.height / scale;
+        [img3 drawInRect:imgR];
+        
+        // complete with working area 
+        _pageRestSpace.size.height = round(CGRectGetMinY(imgR) - PDF_VER_PADDING_FROM_BANNER_TO_CONTENT - _pageRestSpace.origin.y);
+        // [self drawRect:_pageRestSpace withColor:[UIColor redColor]];
+        */
+        _pageRestSpace.size.height = PDF_PAGE_HEIGHT - _pageRestSpace.origin.y;
+    }
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (CGRect)getSpace:(CGFloat)height {
+    if (_pageRestSpace.size.height < height) { 
+        [self startPage];   
+    }
+    CGRect r = _pageRestSpace;
+    r.size.height = height;
+    _pageRestSpace = INRectInset(_pageRestSpace, 0, height, 0, 0);
+    return r;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)renderSection:(id <NSFetchedResultsSectionInfo>)sectionInfo { 
+    NSAssert(sectionInfo.numberOfObjects,@"mk_48f5b05e_b331_4548_b991_09a6a06ba129");
+    BHMigrainEvent * event = [sectionInfo.objects objectAtIndex:0];
+    
+    CGRect r = [self getSpace:PDF_SECTION_HEIGHT];
+    [self fillRect:r withColor:_grayColor];
+    [self drawRect:r withColor:_grayBorderColor];
+    [self drawString:[event.timestamp inru_formatWithKey:BH_MONTH_YEAR] inRect:INRectInset(r, 8, 0, 0, 0) 
+                                                         font:[UIFont boldSystemFontOfSize:12] 
+                                                         alignment:UITextAlignmentLeft color:[UIColor blackColor]];
+    [self getSpace:PDF_BETWEEN_SECTION_PAD];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)renderEvent:(BHMigrainEvent *)event {
+    UIFont * font = [UIFont systemFontOfSize:10];
+    UIFont * captionFont = [UIFont boldSystemFontOfSize:10];
+    CGFloat textLineHeight = [@"!" sizeWithFont:font].height;
+    BOOL hasHeadache = event.hasHeadache.boolValue;
+    __block BOOL shouldPrintHeadacheBand = hasHeadache;
+
+    // 
+    struct {
+        NSString * text;
+        NSString * caption;
+        CGFloat  textHeight;
+    } rows[BHReportFilterLast] = {};
+    
+    CGFloat fullHeight = 0;
+    CGFloat textWidth = _pageRestSpace.size.width - PDF_LEFT_BAND_WIDTH - 3 * PDF_ITEM_TEXT_OFFSET - PDF_CAPTION_WIDTH;
+    for (int option = 0; option < BHReportFilterLast; option++) {
+        BHReportFilterOptionInfo info = BHGetReportFilterOptionInfo(option);
+        NSString * text = nil;
+        
+        // 
+        if (!hasHeadache && option <= BHReportLastHeadacheOption1) { 
+            continue;   
+        }
+        
+        {
+            NSMutableString * s = [NSMutableString string];
+            switch (option) { 
+                case BHReportFilterNotes:
+                case BHReportFilterMenstruation:
+                    {
+                        NSString * str = [event performSelector:info.entitySelector];
+                        if (str) {  
+                            [s appendString:str];
+                        }
+                    }
+                    break;
+                    
+                // 
+                
+                case BHReportFilterDiet: 
+                    {
+                        BOOL b = event.skippedBreakfast.boolValue;        
+                        BOOL d = event.skippedDinner.boolValue;        
+                        BOOL l = event.skippedLunch.boolValue;
+                        if (b || d || l ) { 
+                            NSMutableArray * a = [NSMutableArray array];
+                            if (b) { 
+                                [a addObject:@"Breakfast"];
+                            }
+                            if (l) { 
+                                [a addObject:@"Lunch"];
+                            }
+                            if (d) { 
+                                [a addObject:@"Dinner"];
+                            }
+                            [s appendFormat:@"Skipped %@\n",[a componentsJoinedByString:@", "]]; 
+                        }
+                        if (event.fasting.boolValue) { 
+                            [s appendFormat:@"Fasting\n"];    
+                        }
+                    }
+                    // no break here!
+                default:
+                    { 
+                        NSArray * items = [event orderedCollectionItemsForSelector:info.entitySelector includingCustomItems:YES /* commented out by Michael request NO*/];
+                        int i = 0;
+                        for (BHCollectionItem * item in items) {
+                            [s appendString:item.displayName];
+                            if (i != items.count-1) { 
+                                [s appendString:@", "];
+                            }
+                            i++;
+                        }
+                    }
+                    break;
+            }
+            text = s;
+        }
+        if (text.length) { 
+            rows[option].text = text;
+            rows[option].caption = info.name;
+            rows[option].textHeight = [text sizeWithFont:font constrainedToSize:CGSizeMake(textWidth, 1000)].height;
+            fullHeight += rows[option].textHeight + PDF_ITEM_TEXT_TOP_PAD + PDF_ITEM_TEXT_BOTTOM_PAD;
+        }
+    }
+    if (shouldPrintHeadacheBand) { 
+        fullHeight += PDF_HEADACHE_HEIGHT;
+    }
+    if (!fullHeight) { 
+        return; //
+         
+    }
+    fullHeight = MAX(fullHeight, (textLineHeight + PDF_ITEM_TEXT_TOP_PAD + PDF_ITEM_TEXT_BOTTOM_PAD) * 2);
+    
+    //
+    
+    CGRect r = [self getSpace:fullHeight];
+    
+    __block CGRect bandRect = r;
+    
+    // print ha band 
+    void (^PrintHeadacheBand)() = ^() {
+        shouldPrintHeadacheBand = NO;
+        CGRect haRect = INRectInset(bandRect,PDF_LEFT_BAND_WIDTH,0,0,0);
+        haRect.size.height = PDF_HEADACHE_HEIGHT;
+        [self fillRect:haRect withColor:BHColorForPainIntense(event.intensity.intValue)];
+        bandRect.origin.y += PDF_HEADACHE_HEIGHT ;
+        [self drawLineFrom:CGPointMake(bandRect.origin.x + PDF_LEFT_BAND_WIDTH, bandRect.origin.y) 
+                        to:CGPointMake(CGRectGetMaxX(bandRect),bandRect.origin.y)
+                     color:_grayBorderColor];
+        haRect.origin.x += PDF_ITEM_TEXT_OFFSET;
+        UIFont * boldFont = [UIFont boldSystemFontOfSize:10]; 
+        UIColor * wColor = [UIColor whiteColor];
+        haRect.origin.x += [self drawString:@"Headache" inRect:haRect font:boldFont alignment:UITextAlignmentLeft color:wColor];
+        haRect.origin.x += [self drawString:@" at " inRect:haRect font:font alignment:UITextAlignmentLeft color:wColor];
+        haRect.origin.x += [self drawString:[event startHourString] inRect:haRect font:boldFont alignment:UITextAlignmentLeft color:wColor];
+        haRect.origin.x += [self drawString:@" and lasted " inRect:haRect font:font alignment:UITextAlignmentLeft color:wColor];
+        /* haRect.origin.x += */ [self drawString:[event durationString:YES] inRect:haRect font:boldFont alignment:UITextAlignmentLeft color:wColor];
+    };
+    
+    // 
+    for (int option = 0; option < BHReportFilterLast; option++) {
+        if (!rows[option].textHeight) { 
+            continue;
+        }
+        
+        if (option > BHReportFilterWarningSigns) {
+            if (shouldPrintHeadacheBand) { 
+                PrintHeadacheBand();
+            }
+        }
+        
+        bandRect.size.height = rows[option].textHeight + PDF_ITEM_TEXT_TOP_PAD + PDF_ITEM_TEXT_BOTTOM_PAD;
+        
+        // 
+        CGRect captionRect = INRectInset(bandRect, bandRect.size.width - PDF_CAPTION_WIDTH - PDF_ITEM_TEXT_OFFSET, PDF_ITEM_TEXT_TOP_PAD, PDF_ITEM_TEXT_OFFSET,0);
+        captionRect.size.height = textLineHeight;
+        //[self fillRect:captionRect withColor:[UIColor greenColor]];
+        [self drawString:rows[option].caption inRect:captionRect font:captionFont 
+               alignment:UITextAlignmentRight color:_grayBorderColor];
+        
+        // 
+        CGRect textRect = bandRect;
+        textRect.origin.y += PDF_ITEM_TEXT_TOP_PAD;
+        textRect.origin.x += PDF_LEFT_BAND_WIDTH + PDF_ITEM_TEXT_OFFSET;
+        textRect.size.height = rows[option].textHeight;
+        textRect.size.width = textWidth;
+        //[self fillRect:textRect withColor:[UIColor greenColor]];
+        [[UIColor blackColor] set];
+        [rows[option].text drawInRect:textRect withFont:font lineBreakMode:UILineBreakModeTailTruncation 
+                            alignment:UITextAlignmentLeft];
+        [self drawLineFrom:CGPointMake(bandRect.origin.x + PDF_LEFT_BAND_WIDTH, CGRectGetMaxY(bandRect)) 
+                        to:CGPointMake(CGRectGetMaxX(bandRect),CGRectGetMaxY(bandRect))
+                     color:_grayBorderColor];
+        
+        bandRect.origin.y += bandRect.size.height;
+    }
+    if (shouldPrintHeadacheBand) { 
+        PrintHeadacheBand();
+    }
+    
+    // 
+    CGRect leftPanel = r;
+    leftPanel.size.width = PDF_LEFT_BAND_WIDTH;
+    [self fillRect:leftPanel withColor:_grayColor];
+    CGRect leftPanelLabel = leftPanel;
+    leftPanelLabel.size.height = 30;
+    [self drawString:BHDateToString(event.timestamp, BHdateFormatDay) inRect:leftPanelLabel 
+                font:[UIFont boldSystemFontOfSize:15] 
+           alignment:UITextAlignmentCenter color:[UIColor blackColor]];
+    UIImage * img = [UIImage imageNamed:@"vertical_shadow.png"];
+    leftPanel.origin.x += leftPanel.size.width;
+    leftPanel.size.width = img.size.width;
+    [img drawInRect:leftPanel];
+    
+    // 
+    [self drawRect:r withColor:_grayBorderColor];
+    [self getSpace:PDF_BETWEEN_SECTION_PAD];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)renderChart:(BHChartSeries *)series { 
+    // chartOK
+    CGFloat fullPageHeight = 590; 
+    // CGRect r = 
+    [self getSpace:fullPageHeight];
+    // [self fillRect:r withColor:_grayColor];
+    
+    NSString * nibName = nil;
+    switch (series.seriesKind) { 
+        case BHTriggerExposureChartSeries:
+            nibName = @"BHChart_PiePageView_Report";
+            break;
+
+        case BHPainLevelChartSeries:
+            nibName = @"BHChart_PiePageView_Report2";
+            break;
+            
+        default:
+            nibName = @"BHChart_BarPageView_Report";
+    }
+    
+    BHChart_PageView * page = (id)[[INNibLoader sharedLoader] loadViewFromNib:nibName];
+    [page setSeries:series startDate:_options.startDate];
+    
+    CGContextRef context = UIGraphicsGetCurrentContext();
+    CGRect pageRect = page.bounds;
+    CGContextSaveGState(context);
+    {
+        //CGContextTranslateCTM(context, [page center].x, [page center].y);
+        // Apply the window's transform about the anchor point
+        //CGContextConcatCTM(context, [page transform]);
+        // Offset by the portion of the bounds left of and above the anchor point
+        //CGContextTranslateCTM(context,
+        //                      -[page bounds].size.width * [[page layer] anchorPoint].x,
+        //                      -[page bounds].size.height * [[page layer] anchorPoint].y - 
+        //                      round((pageRect.size.height - PDF_PAGE_HEIGHT) / 2));
+    
+        CGContextTranslateCTM(context, round((PDF_PAGE_WIDTH - pageRect.size.width) / 2), 
+                                       PDF_TOP_BANNER_HEIGHT + PDF_VER_PADDING_FROM_BANNER_TO_CONTENT + PDF_VER_PADDING
+                                       // round((PDF_PAGE_HEIGHT - pageRect.size.height) / 2)
+                                       );
+        [page.layer renderInContext:context];
+    }
+    CGContextRestoreGState(context);
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (NSData *)createReportWithOptions:(BHShareOptions)options { 
+    _options = options;
+    NSDate * startDate = BHDateFromStartDate(_options.startDate);
+    BOOL historyOK = NO;
+    BOOL chartOK = NO;
+
+    // 
+    
+    NSMutableData * pdf = [NSMutableData dataWithCapacity:100000];
+    NSDictionary * dict = [NSDictionary dictionaryWithObjectsAndKeys:
+                             PDF_HEADER, kCGPDFContextTitle, 
+                             nil];
+    UIGraphicsBeginPDFContextToData(pdf, CGRectZero, dict);
+    {
+        _pageOpened = NO;
+        _pageNumber = 0;
+        [self startPage];
+        
+        // charts
+        {
+            if (options.includeAllCharts || options.singleChartKind != BHNonexistentChartSeries) { 
+                BHChartSeriesCollection * collection = [BHChartSeriesCollection collectionSinceDate:_options.startDate];
+                for (BHChartSeries * series in collection) { 
+                    if (options.includeAllCharts || options.singleChartKind == series.seriesKind) { 
+                        if (series.dataState == BHChartSeriesHasDataState) { 
+                             [self renderChart:series];
+                             chartOK = YES;
+                        }
+                    }
+                }
+            }
+            if (chartOK) { 
+                [self startPage];
+            }
+        }
+
+        // history 
+        { 
+            if (options.includeHistory) { 
+                NSFetchedResultsController * results = [g_BH fetchedResultsControllerForEventWithStyle:BHFetchStylePDFReport sinceDate:startDate];
+                for (id <NSFetchedResultsSectionInfo> sectionInfo in [results sections]) { 
+                    historyOK = YES;
+                    [self renderSection:sectionInfo];         
+                    for (BHMigrainEvent * event in sectionInfo.objects) {
+                        [self renderEvent:event];
+                    }
+                }
+            }
+        }
+    }
+    UIGraphicsEndPDFContext();
+    
+    //#warning saving PDF
+    //[pdf writeToFile:@"/Users/murad/Desktop/1.pdf" atomically:YES];
+    return (historyOK || chartOK) ? pdf : nil;
+}
+
+@end
+
+

@@ -1,0 +1,16 @@
+
+#import "BHUIComponents.h"
+#import <MessageUI/MessageUI.h>
+#import "INIPad.h"
+
+@interface BHTryExcedrinViewController : UIViewController<UITableViewDataSource,UITableViewDelegate, 
+                                                          MFMailComposeViewControllerDelegate> {
+    IBOutlet UIButton * _rebateButton;
+    IBOutlet UIImageView * _contentImageView;
+    IBOutlet UITableView * _tableView;
+    IBOutlet UIScrollView * _scrollView;    
+}
+
+- (IBAction)buttonPressed:(id)sender;
+
+@end

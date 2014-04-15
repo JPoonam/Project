@@ -1,0 +1,140 @@
+
+#import "BHWebViewController.h"
+
+@implementation BHWebViewController
+
++ (id)controllerWithBody:(NSString *)body { 
+    BHWebViewController * result = [self new];
+    result->_body = [body retain];    
+    return [result autorelease]; 
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
++ (id)controllerWithURL:(NSURL *)URL { 
+    BHWebViewController * result = [self new];
+    result->_initialURL = [URL retain];    
+    return [result autorelease];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
++ (id)controllerWithDocument:(NSString *)documentName { 
+    NSString * path = [[NSBundle mainBundle] pathForResource:documentName ofType:@"html"]; //  inDirectory:@"Docs"];
+    NSURL * URL = [NSURL fileURLWithPath:path];
+    return [self controllerWithURL:URL];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil {
+    self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil];
+    if (self) {
+        [self bh_setStandardCaptionForNavItem];
+        self.navigationItem.hidesBackButton = YES;
+    }
+    return self;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)dealloc {
+    [_backButton release];
+    [_initialURL release];  
+    [_webView release];
+    [_body release];
+    [super dealloc];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (BOOL)makeCoolBackground { 
+    return YES;   
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    _webView.delegate = self;
+    self.navigationItem.leftBarButtonItem = _backButton;
+    if (self.makeCoolBackground) { 
+        [self bh_setStyleWithCoolBackground:YES topShadow:YES havingOwnNavBar:NO]; 
+    }
+
+    _webView.opaque = NO;
+    _webView.backgroundColor = [UIColor whiteColor];
+    [_webView inru_disableScrollingGradient]; 
+    
+    // NSString * path = [[NSBundle mainBundle] pathForResource:@"navigation" ofType:@"html" inDirectory:@"Articles/v2"];
+    if (_initialURL) { 
+        [_webView loadRequest:[NSURLRequest requestWithURL:_initialURL]];
+    } else
+    if (_body) { 
+        [_webView loadHTMLString:_body baseURL:nil];
+    }
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (IBAction)buttonPressed:(id)sender { 
+    if (sender == _backButton) { 
+        [self.navigationController popViewControllerAnimated:YES];
+    }    
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (BOOL)webView:(UIWebView *)webView shouldStartLoadWithRequest:(NSURLRequest *)request navigationType:(UIWebViewNavigationType)navigationType { 
+    if (request.URL.host.length) { 
+        [[UIApplication sharedApplication] performSelector:@selector(openURL:) withObject:request.URL afterDelay:0.1];
+        return NO;   
+    }
+    return YES;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)webViewDidFinishLoad:(UIWebView *)webView { 
+   //   
+}
+
+@end
+
+//==================================================================================================================================
+//==================================================================================================================================
+
+@implementation BHArticleWebViewController 
+
+- (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil {
+    self = [super initWithNibName:@"BHWebViewController" bundle:nibBundleOrNil];
+    if (self)
+    {
+        // Custom initialization.
+        // _nibLoader = [INNibLoader new];
+    }
+    return self;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    self.view.backgroundColor = [UIColor whiteColor];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)webViewDidFinishLoad:(UIWebView *)webView { 
+    [super webViewDidFinishLoad:webView];
+    CGRect r = self.view.bounds;
+    r.size.height /= 2;
+    UIView * v = [[UIView alloc] initWithFrame:r];
+    v.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleBottomMargin;
+     
+    [self.view insertSubview:v belowSubview:_webView];
+    [v release];
+    v.backgroundColor = [UIColor inru_colorFromRGBA:0xf2f2f2ff];
+}
+
+@end

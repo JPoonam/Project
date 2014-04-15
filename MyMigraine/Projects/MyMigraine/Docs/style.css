@@ -1,0 +1,167 @@
+body {
+  margin: 0px;
+  background: #ffffff;	
+  font-family: Arial, "MS Trebuchet", sans-serif;
+  font-size: 18px;
+  line-height:20px;
+  padding-bottom: 55px;
+  padding-left: 14px;
+  padding-right:19px;
+  letter-spacing: 0px;
+}
+
+div#bg {
+  position: absolute;
+  width: 100%;
+  height:250px;
+  z-index: -1;
+  margin-left: -14px;
+  margin-top: -18px;
+
+  background: url(gradient.png) repeat-y top left; /* Old browsers */
+  background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#f2f2f2), color-stop(100%,#ffffff)); /* Chrome,Safari4+ */
+  background: -webkit-linear-gradient(top, #f2f2f2 0%,#ffffff 100%); /* Chrome10+,Safari5.1+ */
+  background: linear-gradient(top, #f2f2f2 0%,#ffffff 100%); /* W3C */
+}
+
+h1 {
+  color: #227B40;
+  font-size: 30px;
+  font-family: "Oswald", Arial, "MS Trebuchet", sans-serif;
+  font-weight: normal;
+  margin-bottom: 13px;
+  line-height: 30px;
+  margin-top: 18px;
+}
+
+h2 {
+  color: #c80000;
+  font-weight: bold;
+  font-size: 21px;
+  line-height: 24px;
+  margin-bottom: 5px;
+}
+
+p.text {
+  margin:0px;
+  padding:0px;
+  color: #333333;
+}
+
+p.preface {
+  margin:0px;
+  padding:0px;
+  color: #c80000;
+  font-weight: bold;
+  line-height: 20px;
+}
+
+p.preface sup {
+  font-size: 11px;
+  position: relative;
+}
+
+td.header {
+  height: 18px;
+  color: white;
+  background: #006699;
+  font-weight: 300 ;
+  border: none;
+  padding: 7px;
+  padding-left: 13px;	
+}
+
+td {
+  font-size: 18px;
+  background: #e9e7e7;
+  padding: 13px;
+  padding-left: 0px;
+  border-left: 2px solid #666666;
+  border-right: 2px solid #666666;
+  border-top: none;
+  border-bottom: none;	
+}
+
+td ul li, div.box ul li {
+  margin-bottom: 3px;
+}
+
+td.last {
+  border-bottom: 2px solid #666666;	
+}
+
+td.first {
+  border-bottom: 2px solid #666666;	
+}
+
+tr {
+  border:none;
+}
+
+div.box {
+  background: #e9e7e7;
+  padding: 13px;
+  padding-left: 0px;
+  border: 2px solid #666666;
+}
+
+h2 sup {
+  font-size: 11px;
+}
+
+ul, ol {
+  margin: 0px;
+}
+
+ul li, ol li {
+  margin: 0px;
+}
+
+p.text sup, p.text b sup{
+  font-size: 11px;
+}
+
+div.footnote {
+  font-size: 12px;
+  line-height: 15px;
+  margin-top: 13px;
+  color: #333333;
+}
+
+hr {
+  margin-top: 19px;
+  margin-bottom:10px;
+  border: none;
+  background: #d8d5d2;
+  height: 1px;
+}
+
+div.footnote ul,
+div.footnote ol
+{
+  margin: 0px;
+  margin-left: -14px;
+}
+
+div.footnote ol li, div.footnote ul li {
+  font-size: 12px;
+  list-style: decimal outside;
+  margin: 0px;
+  margin-bottom: 0px;
+  
+  text-indent: -13px;
+  margin-left: -10px;
+  list-style-position: inside;
+}
+
+div.footnote ul li a, 
+div.footnote ul li a:hover, 
+div.footnote ul li a:visited, 
+
+div.footnote ol li a, 
+div.footnote ol li a:hover, 
+div.footnote ol li a:visited 
+{
+  color: #333333;
+  text-decoration: none;
+}

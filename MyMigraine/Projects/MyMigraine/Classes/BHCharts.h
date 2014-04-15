@@ -1,0 +1,69 @@
+
+#import "BHClasses.h"
+
+typedef enum { 
+    BHTriggerExposureChartSeries,
+    BHTriggerFrequencyChartSeries,
+    BHSymptomsFrequencyChartSeries,
+    BHPainLocationChartSeries,
+    BHPainLevelChartSeries,
+    BHChartSeriesLast,
+    BHNonexistentChartSeries
+} BHChartSeriesKind;
+
+typedef enum { 
+    BHChartSeriesHasDataState,
+    BHChartSeriesHasNoFilteredDataState,
+    BHChartSeriesHasNoDataState,
+} BHChartSeriesDataState;
+
+//==================================================================================================================================
+//==================================================================================================================================
+
+@interface BHChartSeriesItem : BHObject { 
+    double _value;   
+}
+
+@property(nonatomic) double value;   
+@property(nonatomic, retain) UIColor * color;   
+
+@end 
+
+//==================================================================================================================================
+//==================================================================================================================================
+
+@interface BHChartSeries : BHObject { 
+    BHChartSeriesKind _seriesKind; 
+    NSString * _line1text; 
+    NSString * _line2text; 
+    BOOL _centeredText;
+    BHChartSeriesDataState _dataState;
+    BOOL _addOtherItem;
+    NSInteger _limitedItemCount;
+}
+
+@property (nonatomic, readonly) BHChartSeriesKind seriesKind;
+@property (nonatomic, retain) NSString * line1text; 
+@property (nonatomic, retain) NSString * line2text; 
+@property (nonatomic) BOOL centeredText; 
+@property (nonatomic) BOOL addOtherItem;
+@property (nonatomic) BHChartSeriesDataState dataState;
+@property (nonatomic) NSInteger limitedItemCount; 
+
+- (NSUInteger)chartItemCount;
+- (BHChartSeriesItem *)chartItemAtIndex:(NSUInteger)index;
+
+@end 
+
+//==================================================================================================================================
+//==================================================================================================================================
+
+@interface BHChartSeriesCollection : BHObject
+{ 
+   
+}
+
++ (BHChartSeriesCollection *)collectionSinceDate:(BHStartDate)startDate;
+//+ (BHChartSeriesCollection *)collectionSinceDate:(BHStartDate)startDate painLocation:(BOOL)painLoc;
+
+@end 

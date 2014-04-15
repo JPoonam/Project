@@ -1,0 +1,77 @@
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/mobile/!svn/ver/2291/projects/Novartis/MyMigraine/trunk/InRuCode/Classes/REST
+END
+INRester.h
+K 25
+svn:wc:ra_dav:version-url
+V 89
+/mobile/!svn/ver/2291/projects/Novartis/MyMigraine/trunk/InRuCode/Classes/REST/INRester.h
+END
+INResponseParserJSON.h
+K 25
+svn:wc:ra_dav:version-url
+V 101
+/mobile/!svn/ver/2291/projects/Novartis/MyMigraine/trunk/InRuCode/Classes/REST/INResponseParserJSON.h
+END
+INAssert.m
+K 25
+svn:wc:ra_dav:version-url
+V 89
+/mobile/!svn/ver/2291/projects/Novartis/MyMigraine/trunk/InRuCode/Classes/REST/INAssert.m
+END
+INResterValue.m
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/mobile/!svn/ver/2291/projects/Novartis/MyMigraine/trunk/InRuCode/Classes/REST/INResterValue.m
+END
+INRester.m
+K 25
+svn:wc:ra_dav:version-url
+V 89
+/mobile/!svn/ver/2291/projects/Novartis/MyMigraine/trunk/InRuCode/Classes/REST/INRester.m
+END
+INResponseParserJSON.m
+K 25
+svn:wc:ra_dav:version-url
+V 101
+/mobile/!svn/ver/2291/projects/Novartis/MyMigraine/trunk/InRuCode/Classes/REST/INResponseParserJSON.m
+END
+INResponseParser.h
+K 25
+svn:wc:ra_dav:version-url
+V 97
+/mobile/!svn/ver/2291/projects/Novartis/MyMigraine/trunk/InRuCode/Classes/REST/INResponseParser.h
+END
+INResponseParserXML.h
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/mobile/!svn/ver/2291/projects/Novartis/MyMigraine/trunk/InRuCode/Classes/REST/INResponseParserXML.h
+END
+INResponseParser.m
+K 25
+svn:wc:ra_dav:version-url
+V 97
+/mobile/!svn/ver/2291/projects/Novartis/MyMigraine/trunk/InRuCode/Classes/REST/INResponseParser.m
+END
+INAssert.h
+K 25
+svn:wc:ra_dav:version-url
+V 89
+/mobile/!svn/ver/2291/projects/Novartis/MyMigraine/trunk/InRuCode/Classes/REST/INAssert.h
+END
+INResponseParserXML.m
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/mobile/!svn/ver/2291/projects/Novartis/MyMigraine/trunk/InRuCode/Classes/REST/INResponseParserXML.m
+END
+INResterValue.h
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/mobile/!svn/ver/2291/projects/Novartis/MyMigraine/trunk/InRuCode/Classes/REST/INResterValue.h
+END

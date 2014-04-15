@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="initial-scale=1.0" />
+    <title>What is a migraine?</title>
+    <meta charset="utf-8"/>
+    <link rel="stylesheet" href="./style.css" type="text/css" media="screen" charset="utf-8">
+  </head>
+  <body>
+    <div id="bg"></div>
+    <h1>What is a Migraine?</h1>
+    <p class="preface">
+      A migraine is more than just a bad headache. 
+      Migraine headaches are a neurological
+      <span style="line-height:14px;">disorder characterized by imbalances in brain chemistry.<sup>1, 2</sup></span>
+    </p>
+    <br />
+    <p class="text">
+      Although the exact cause of migraine headaches isn’t completely understood, medical researchers believe that migraine headaches are caused by 
+      altered blood flow and abnormal levels of naturally-produced substances in the brain. 
+      <br/><br/>
+      When blood flow is decreased, certain arteries dilate and cause pain-producing chemicals to be released. Additionally, the dilation causes an increase in the natural substance levels. This makes the blood vessels lining the brain swell and creates pressure on nearby nerves. 
+      <br/><br/>
+      These nerves send pain signals to the body that are typically felt around the eye or temple region and can extend to the face, sinus, <br/>
+      <span style="line-height:14px;">jaw, or neck.<sup>1, 2</sup></span>
+    </p>
+    <hr />
+    <div class="footnote">
+      <ul>
+        <li>
+          U.S. Department of Health and Human Services. Migraine Fact Sheet. Available at: 
+          <a href="http://www.womenshealth.gov/publications/our-publications/fact-sheet/migraine.cfm">
+            http://www.womenshealth.gov/publications/our-
+            publications/fact-sheet/migraine.cfm</a>.<br/> 
+          Last accessed July 2011.
+          <br /><br />
+        </li>
+        <li>
+          National Headache Foundation. Migraine Topic Sheet. Available at:<br/> 
+          <a href="http://www.headaches.org/education/Headache_Topic_Sheets/Migraine">
+            http://www.headaches.org/education/<br/>Headache_Topic_Sheets/Migraine</a>.<br/>
+            Last accessed July 2011.
+        </li>
+      </ul>
+    </div>
+  </body>
+</html>

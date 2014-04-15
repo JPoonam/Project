@@ -1,0 +1,35 @@
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/mobile/!svn/ver/2291/projects/Novartis/MyMigraine/trunk/InRuCode/Classes/ORM
+END
+INPersistentStorage.h
+K 25
+svn:wc:ra_dav:version-url
+V 99
+/mobile/!svn/ver/2291/projects/Novartis/MyMigraine/trunk/InRuCode/Classes/ORM/INPersistentStorage.h
+END
+INPersistentObject.h
+K 25
+svn:wc:ra_dav:version-url
+V 98
+/mobile/!svn/ver/2291/projects/Novartis/MyMigraine/trunk/InRuCode/Classes/ORM/INPersistentObject.h
+END
+INPersistentStorage.m
+K 25
+svn:wc:ra_dav:version-url
+V 99
+/mobile/!svn/ver/2291/projects/Novartis/MyMigraine/trunk/InRuCode/Classes/ORM/INPersistentStorage.m
+END
+INPersistentObject.m
+K 25
+svn:wc:ra_dav:version-url
+V 98
+/mobile/!svn/ver/2291/projects/Novartis/MyMigraine/trunk/InRuCode/Classes/ORM/INPersistentObject.m
+END
+INPersistentStorageDelegate.h
+K 25
+svn:wc:ra_dav:version-url
+V 107
+/mobile/!svn/ver/2291/projects/Novartis/MyMigraine/trunk/InRuCode/Classes/ORM/INPersistentStorageDelegate.h
+END

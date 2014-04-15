@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="initial-scale=1.0" />
+    <title>Coping with migraines</title>
+    <meta charset="utf-8"/>
+    <link rel="stylesheet" href="./style.css" type="text/css" media="screen" charset="utf-8">
+  </head>
+  <body>
+    <div id="bg"></div>
+    <h1>Coping with Migraines</h1>  
+    <h2>Taking action</h2>
+    <p class="text">
+      While your migraines may be a fact of life, there are steps you can take that may help reduce the severity or frequency of your <span style="line-height:14px;">attacks.<sup>1</sup></span>
+      <br/><br/>
+      The best course of action may be the practice of "good headache hygiene," coupled with early 
+      <br/><span style="line-height:14px;">intervention.<sup>2</sup></span>
+    </p>
+
+    <h2>What is "headache hygiene"?</h2>
+    <p class="text">
+      The American Headache Society defines headache hygiene as “the practice of taking care of yourself in a way that will reduce the likelihood, frequency, intensity, and severity” of migraines.<sup>3</sup> It includes:
+      <br /><br />
+      <b>Good, regular sleep habits</b> — both too little sleep and oversleeping
+      <span style="line-height:14px;">can act as triggers<sup>1,2</sup></span>
+      <br /><br/>
+      <span style="line-height:14px;"><b>Regular exercise<sup>*</sup></b> — aerobic</span> <br/>activity reduces stress and increases brain chemicals <span style="line-height:14px;">that control pain<sup>1,2</sup></span>
+      <br /><br/>
+      <b>Healthy and regular eating habits</b> — don’t miss meals or go hungry; drink plenty of water to avoid dehydration; skip the diet <br/><span style="line-height:14px;">drinks and junk food<sup>1,2</sup></span>
+      <br /><br/>
+      <b>Stress reduction</b> — exercise is a well-known stress buster; meditation, yoga, and biofeedback <span style="line-height:14px;">may also help<sup>1,2</sup></span>
+      <br /><br/>
+      <b>Trigger avoidance</b> — to identify your personal triggers, keep a migraine diary
+    </p>
+    
+    <hr />
+
+    <div class="footnote">
+      <ol start="0">
+        <li style="list-style:none">
+          <i>
+            * Consult your healthcare provider before beginning or changing your exercise routine.
+            <br/><br/>
+          </i>
+        </li>
+        <li>
+          American Headache Society. Headache Hygiene<br/>&nbsp;&mdash;&nbsp;What Is It? 
+          Available at:<br/> 
+          <a href="http://www.achenet.org/education/patients/HeadacheHygiene.asp">
+            http://www.achenet.org/education/patients/Headache
+            <br/>Hygiene.asp</a>.<br/>
+          Last accessed July 2011.
+          <br/><br/>
+        </li>
+        <li>
+          American Headache Society. ABC's of Headache Trigger Management. Available at: 
+          <a href="http://www.achenet.org/education/">
+            http://achenet.org/education/<br/>
+          ABCsofHeadacheTriggerManagement.asp</a>.<br/> 
+          Last accessed July 2011. 
+          <br /><br />
+        <li>
+            U.S. Department of Health and Human Services. Migraine Fact Sheet. Can stress cause migraines? 
+            <br/>Available at:<br/> 
+            <a href="http://www.womenshealth.gov/publications/our-publications/fact-sheet/migraine.cfm">
+              http://www.womenshealth.gov/publications/<br/>
+              our-publications/fact-sheet/migraine.cfm</a>. 
+            <br/>Last accessed July 2011.
+          <br /><br /> 
+        </li>
+      </ol> 
+    </div>
+
+  </body>
+</html>

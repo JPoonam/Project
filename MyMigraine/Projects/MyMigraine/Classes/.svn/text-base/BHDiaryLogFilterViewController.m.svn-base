@@ -1,0 +1,241 @@
+
+#import "BHDiaryLogFilterViewController.h"
+#import "BHAppDelegate.h"
+
+@interface BHDiaryLogFilterViewController ()
+
+@end
+
+//==================================================================================================================================
+
+@implementation BHDiaryLogFilterViewController
+
++ (id)filterForDelegate:(id<BHDiaryLogFilterViewControllerDelegate>)delegate options:(BHFilterOptions)options {
+    BHDiaryLogFilterViewController * result = [BHDiaryLogFilterViewController new];
+    result->_delegate = delegate;
+    result->_options = options;
+    
+    UINavigationController * navController = [[UINavigationController alloc] initWithRootViewController:result];
+    navController.delegate = g_AppDelegate;
+    [result bh_setNavBarBackground];
+    [result release];
+    return [navController autorelease];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)updateControls { 
+    _doneButton.enabled = _options.itemMask != 0;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    self.navigationItem.leftBarButtonItem = _cancelButton;
+    self.navigationItem.rightBarButtonItem = _doneButton;
+    [self bh_setStyleWithCoolBackground:YES topShadow:YES havingOwnNavBar:NO]; 
+    [self updateControls];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)viewDidUnload {
+    [_tableView release];
+    _tableView = nil;
+    [_cancelButton release];
+    _cancelButton = nil;
+    [_doneButton release];
+    _doneButton = nil;
+    [super viewDidUnload];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)dealloc {
+    [_tableView release];
+    [_cancelButton release];
+    [_doneButton release];
+    [super dealloc];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (IBAction)buttonPressed:(id)sender {
+    if (sender == _cancelButton) { 
+        [self dismissModalViewControllerAnimated:YES];
+        // [self.navigationController popViewControllerAnimated:YES];
+    }
+    if (sender == _doneButton) { 
+        [_delegate diaryLogFilter:self didSelectNewFilterOptions:_options];
+        [self dismissModalViewControllerAnimated:YES];
+    }
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)bh_style_setupHeader { 
+    [self bh_setCaption:@"Filter"];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (BOOL)bh_style_shouldShowSideShadows { 
+    return YES;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+enum {
+    CELL_DATE_TITLE,
+    CELL_DATE,
+    CELL_CATEGORY_TITLE,
+    CELL_LAST
+};
+
+enum { 
+    SECTION_TITLES,
+    SECTION_CATEGORIES,
+    SECTION_LAST
+};
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView { 
+    return SECTION_LAST;
+} 
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
+    switch (section) { 
+        case SECTION_TITLES:
+            return CELL_LAST;
+              
+        case SECTION_CATEGORIES:
+            return BHScreenFilterRow_Last;
+            
+    }
+    NSAssert(0, @"mk_1e10bf68_6a71_4855_b5ef_6738136e3489");
+    return 0;
+}
+
+#define CELL_TITLE_FILTER_CHOOSE_START_DATE    @"Choose a start date"
+#define CELL_TITLE_FILTER_ADD_REM_CATEGORIES   @"Add or remove categories"
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    UITableViewCell * cell = nil;
+    BOOL justLoaded;
+    
+    switch (indexPath.section) { 
+        case SECTION_TITLES:
+            switch (indexPath.row) { 
+                case CELL_DATE_TITLE:
+                    cell = [BHTitleCell cellWithTitle:CELL_TITLE_FILTER_CHOOSE_START_DATE tableView:tableView condensed:YES];
+                    break;
+                    
+                case CELL_CATEGORY_TITLE:
+                    cell = [BHTitleCell cellWithTitle:CELL_TITLE_FILTER_ADD_REM_CATEGORIES tableView:tableView condensed:YES];
+                    break;
+                    
+                case CELL_DATE:
+                    cell = [[INNibLoader sharedLoader] reusableCellForTable:tableView nibFile:@"BHFramedDisclosureCell" 
+                                                            reuseIdentifier:@"dcell" justLoaded:&justLoaded];
+                    ((BHFramedCell *)cell).captionLabel.text = BHStartDateToString(_options.startDate);
+                    [(BHFramedCell *)cell setRow:0 ofTotal:1];
+                    ((BHFramedCell *)cell).frameControl.frameStyle = BHControlFrameRounded; 
+                    break;
+                    
+                default:
+                    NSAssert(0, @"mk_2edd1218_d508_43b0_aa44_dff5222035a9");
+            }
+            break;
+            
+        case SECTION_CATEGORIES:
+            { 
+                BHButtonedCell * cell1 = (id)[[INNibLoader sharedLoader] reusableCellForTable:tableView nibFile:@"BHButtonedCell" 
+                                                                              reuseIdentifier:@"cell" justLoaded:&justLoaded];
+                cell = cell1;
+                cell1.delegate = self;
+                [cell1 hideRightButton]; 
+                cell1.captionLabel.text = BHScreenFilterOptionToString(indexPath.row);
+                cell1.itemButton.style = BHItemButtonCheckbox;
+                cell1.object = [NSNumber numberWithInt:indexPath.row];
+                cell1.itemButton.selected = (_options.itemMask & (1 << indexPath.row)) != 0;
+                [cell1 setRow:indexPath.row ofTotal:[self tableView:tableView numberOfRowsInSection:indexPath.section]];
+            }
+            break;
+            
+        default:
+            NSAssert(0, @"mk_7ae57190_d033_43b2_8baa_673246a3c37e");
+
+    }
+    return cell;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)switchOption:(NSInteger)option {
+    if ( _options.itemMask & (1 << option)) { 
+        _options.itemMask = _options.itemMask & ~(1 << option);    
+    } else { 
+        _options.itemMask |= (1 << option);    
+    }
+    [_tableView reloadData];
+    [self updateControls];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)bhcellWithTag:(NSInteger)cellTag didPressButton:(UIButton *)button forObject:(NSNumber *)option  { 
+    [self switchOption:option.intValue];    
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
+    switch (indexPath.section) { 
+        case SECTION_TITLES:
+            switch (indexPath.row) { 
+                case CELL_DATE_TITLE:
+                    return [BHTitleCell heightForTitle:CELL_TITLE_FILTER_CHOOSE_START_DATE  condensed:YES];
+                    
+                case CELL_CATEGORY_TITLE:
+                    return [BHTitleCell heightForTitle:CELL_TITLE_FILTER_ADD_REM_CATEGORIES  condensed:YES];
+                    
+            }
+            break;
+    }
+    return COMMON_CELL_HEIGHT;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+    [tableView deselectRowAtIndexPath:indexPath animated:YES];
+    switch (indexPath.section) { 
+        case SECTION_CATEGORIES: 
+            [self switchOption:indexPath.row];
+            break;
+            
+        case SECTION_TITLES:
+            if (indexPath.row == CELL_DATE) { 
+                BHDatePicker2 * picker2 = [BHDatePicker2 controllerForDelegate:self startDate:_options.startDate];
+                [self.navigationController pushViewController:picker2 animated:YES];  
+            }
+            break;
+    }
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)datePicker2:(BHDatePicker2 *)picker didSelectDate:(BHStartDate)date { 
+    _options.startDate = date;
+    [_tableView reloadData];
+}
+
+@end
+
+

@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model name="BlippHeadache.xcdatamodel" userDefinedModelVersionIdentifier="" type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="2061" systemVersion="11G63" minimumToolsVersion="Xcode 4.5" macOSVersion="Automatic" iOSVersion="iOS 6.1">
+    <entity name="Environment" representedClassName="BHCollectionItem" syncable="YES">
+        <attribute name="field1" optional="YES" attributeType="Integer 32" defaultValueString="0" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="isDefault" attributeType="Boolean" defaultValueString="NO" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="name" attributeType="String" indexed="YES" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="orderNo" attributeType="Integer 32" defaultValueString="0" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="recordDeleted" attributeType="Boolean" defaultValueString="NO" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="tag" optional="YES" attributeType="Integer 32" defaultValueString="0" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <relationship name="migrainEvents" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="MigrainEvent" inverseName="environments" inverseEntity="MigrainEvent" indexed="YES" syncable="YES">
+            <userInfo/>
+        </relationship>
+        <userInfo/>
+    </entity>
+    <entity name="Food" representedClassName="BHCollectionItem" syncable="YES">
+        <attribute name="field1" optional="YES" attributeType="Integer 32" defaultValueString="0" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="isDefault" attributeType="Boolean" defaultValueString="NO" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="name" attributeType="String" indexed="YES" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="orderNo" attributeType="Integer 32" defaultValueString="0" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="recordDeleted" attributeType="Boolean" defaultValueString="NO" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="tag" optional="YES" attributeType="Integer 32" defaultValueString="0" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <relationship name="migrainEvents" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="MigrainEvent" inverseName="foods" inverseEntity="MigrainEvent" indexed="YES" syncable="YES">
+            <userInfo/>
+        </relationship>
+        <userInfo/>
+    </entity>
+    <entity name="Lifestyle" representedClassName="BHCollectionItem" syncable="YES">
+        <attribute name="field1" optional="YES" attributeType="Integer 32" defaultValueString="0" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="isDefault" attributeType="Boolean" defaultValueString="NO" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="name" attributeType="String" indexed="YES" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="orderNo" attributeType="Integer 32" defaultValueString="0" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="recordDeleted" attributeType="Boolean" defaultValueString="NO" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="tag" optional="YES" attributeType="Integer 32" defaultValueString="0" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <relationship name="migrainEvents" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="MigrainEvent" inverseName="lifestyles" inverseEntity="MigrainEvent" indexed="YES" syncable="YES">
+            <userInfo/>
+        </relationship>
+        <userInfo/>
+    </entity>
+    <entity name="Location" representedClassName="BHCollectionItem" syncable="YES">
+        <attribute name="field1" optional="YES" attributeType="Integer 32" defaultValueString="0" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="isDefault" attributeType="Boolean" defaultValueString="NO" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="name" attributeType="String" indexed="YES" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="orderNo" attributeType="Integer 32" defaultValueString="0" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="recordDeleted" attributeType="Boolean" defaultValueString="NO" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="tag" optional="YES" attributeType="Integer 32" defaultValueString="0" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <relationship name="migrainEvents" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="MigrainEvent" inverseName="locations" inverseEntity="MigrainEvent" indexed="YES" syncable="YES">
+            <userInfo/>
+        </relationship>
+        <userInfo/>
+    </entity>
+    <entity name="MigrainEvent" representedClassName="BHMigrainEvent" syncable="YES">
+        <attribute name="duration" optional="YES" attributeType="Integer 32" minValueString="0" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="fasting" attributeType="Boolean" defaultValueString="NO" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="hasHeadache" attributeType="Boolean" defaultValueString="NO" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="intensity" attributeType="Integer 32" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="isCompleted" optional="YES" attributeType="Boolean" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="menstruating" attributeType="Integer 32" defaultValueString="0" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="note" optional="YES" attributeType="String" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="skippedBreakfast" attributeType="Boolean" defaultValueString="NO" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="skippedDinner" attributeType="Boolean" defaultValueString="NO" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="skippedLunch" attributeType="Boolean" defaultValueString="NO" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="startHour" optional="YES" attributeType="Integer 32" indexed="YES" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="timestamp" attributeType="Date" indexed="YES" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="yearMonth" attributeType="Integer 32" indexed="YES" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <relationship name="environments" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Environment" inverseName="migrainEvents" inverseEntity="Environment" indexed="YES" syncable="YES">
+            <userInfo/>
+        </relationship>
+        <relationship name="foods" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Food" inverseName="migrainEvents" inverseEntity="Food" indexed="YES" syncable="YES">
+            <userInfo/>
+        </relationship>
+        <relationship name="lifestyles" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Lifestyle" inverseName="migrainEvents" inverseEntity="Lifestyle" indexed="YES" syncable="YES">
+            <userInfo/>
+        </relationship>
+        <relationship name="locations" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Location" inverseName="migrainEvents" inverseEntity="Location" indexed="YES" syncable="YES">
+            <userInfo/>
+        </relationship>
+        <relationship name="reliefs" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Relief" inverseName="migrainEvents" inverseEntity="Relief" indexed="YES" syncable="YES">
+            <userInfo/>
+        </relationship>
+        <relationship name="symptoms" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Symptom" inverseName="migrainEvents" inverseEntity="Symptom" indexed="YES" syncable="YES">
+            <userInfo/>
+        </relationship>
+        <relationship name="treatments" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Treatment" inverseName="migrainEvents" inverseEntity="Treatment" indexed="YES" syncable="YES">
+            <userInfo/>
+        </relationship>
+        <relationship name="warnings" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Warning" inverseName="migrainEvents" inverseEntity="Warning" indexed="YES" syncable="YES">
+            <userInfo/>
+        </relationship>
+        <userInfo/>
+    </entity>
+    <entity name="Relief" representedClassName="BHCollectionItem" syncable="YES">
+        <attribute name="field1" optional="YES" attributeType="Integer 32" defaultValueString="0" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="isDefault" attributeType="Boolean" defaultValueString="NO" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="name" attributeType="String" indexed="YES" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="orderNo" attributeType="Integer 32" defaultValueString="0" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="recordDeleted" attributeType="Boolean" defaultValueString="NO" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="tag" optional="YES" attributeType="Integer 32" defaultValueString="0" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <relationship name="migrainEvents" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="MigrainEvent" inverseName="reliefs" inverseEntity="MigrainEvent" indexed="YES" syncable="YES">
+            <userInfo/>
+        </relationship>
+        <userInfo/>
+    </entity>
+    <entity name="Symptom" representedClassName="BHCollectionItem" syncable="YES">
+        <attribute name="field1" optional="YES" attributeType="Integer 32" defaultValueString="0" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="isDefault" attributeType="Boolean" defaultValueString="NO" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="name" attributeType="String" indexed="YES" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="orderNo" attributeType="Integer 32" defaultValueString="0" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="recordDeleted" attributeType="Boolean" defaultValueString="NO" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="tag" optional="YES" attributeType="Integer 32" defaultValueString="0" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <relationship name="migrainEvents" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="MigrainEvent" inverseName="symptoms" inverseEntity="MigrainEvent" indexed="YES" syncable="YES">
+            <userInfo/>
+        </relationship>
+        <userInfo/>
+    </entity>
+    <entity name="Treatment" representedClassName="BHCollectionItem" syncable="YES">
+        <attribute name="field1" optional="YES" attributeType="Integer 32" defaultValueString="0" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="isDefault" attributeType="Boolean" defaultValueString="NO" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="name" attributeType="String" indexed="YES" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="orderNo" attributeType="Integer 32" defaultValueString="0" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="recordDeleted" attributeType="Boolean" defaultValueString="NO" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="tag" optional="YES" attributeType="Integer 32" defaultValueString="0" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <relationship name="migrainEvents" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="MigrainEvent" inverseName="treatments" inverseEntity="MigrainEvent" indexed="YES" syncable="YES">
+            <userInfo/>
+        </relationship>
+        <userInfo/>
+    </entity>
+    <entity name="Warning" representedClassName="BHCollectionItem" syncable="YES">
+        <attribute name="field1" optional="YES" attributeType="Integer 32" defaultValueString="0" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="isDefault" attributeType="Boolean" defaultValueString="NO" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="name" attributeType="String" indexed="YES" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="orderNo" attributeType="Integer 32" defaultValueString="0" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="recordDeleted" attributeType="Boolean" defaultValueString="NO" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <attribute name="tag" optional="YES" attributeType="Integer 32" defaultValueString="0" syncable="YES">
+            <userInfo/>
+        </attribute>
+        <relationship name="migrainEvents" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="MigrainEvent" inverseName="warnings" inverseEntity="MigrainEvent" indexed="YES" syncable="YES">
+            <userInfo/>
+        </relationship>
+        <userInfo/>
+    </entity>
+    <elements>
+        <element name="Relief" positionX="540" positionY="279" width="128" height="150"/>
+        <element name="Warning" positionX="-9" positionY="615" width="128" height="150"/>
+        <element name="Lifestyle" positionX="-74" positionY="-0" width="128" height="150"/>
+        <element name="Environment" positionX="468" positionY="9" width="128" height="150"/>
+        <element name="Symptom" positionX="-56" positionY="423" width="128" height="150"/>
+        <element name="Location" positionX="-128" positionY="183" width="128" height="150"/>
+        <element name="Food" positionX="630" positionY="117" width="128" height="150"/>
+        <element name="Treatment" positionX="502" positionY="513" width="128" height="150"/>
+        <element name="MigrainEvent" positionX="234" positionY="90" width="180" height="360"/>
+    </elements>
+</model>

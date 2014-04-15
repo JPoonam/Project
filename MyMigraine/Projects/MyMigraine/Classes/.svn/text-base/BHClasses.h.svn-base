@@ -1,0 +1,270 @@
+
+#import "BHGlobals.h"
+
+//==================================================================================================================================
+//==================================================================================================================================
+
+@interface BHObject : INObject2 { 
+
+}
+
+@end
+
+//==================================================================================================================================
+//==================================================================================================================================
+
+@interface BHManagedObject : NSManagedObject { 
+
+}
+
+@end
+
+//==================================================================================================================================
+//==================================================================================================================================
+
+@interface BHCollectionItem : BHManagedObject { 
+   
+}
+
+// data
+@property (nonatomic,retain) NSString  * name; 
+@property (nonatomic,retain) NSNumber  * orderNo; 
+@property (nonatomic,retain) NSNumber  * tag; 
+@property (nonatomic,retain) NSNumber  * isDefault; 
+@property (nonatomic,retain) NSNumber  * recordDeleted; 
+@property (nonatomic,retain) NSNumber  * field1; // some reservesd field
+
+// calculated fields
+@property (nonatomic,readonly) NSString  * displayName;
+
+// other stuff 
+- (NSComparisonResult)compareByOrderNo:(BHCollectionItem *)otherItem;
+
+@end
+
+//==================================================================================================================================
+//==================================================================================================================================
+
+// Migraine Screens: A user inputs Migraine data, starting with the date, time and length of the Migraine, 
+// followed by the intensity and location of the pain.  The user continues to choose 
+// Warning signs, Symptoms, and treatments.
+
+// add to the tail pnly!! current values are hard-coded 
+enum {
+    WarningTag_VisualDisturance_Help = 1,
+    SymptomTag_MissedActivity_Help,
+    LifeTag_CaffeineWithdraw_Help,
+    LifeTag_StressLetdown_Help, 
+    
+    LocationTag_LeftSide,
+    LocationTag_RightSide,
+    LocationTag_BothSides,
+    LocationTag_Front,
+    LocationTag_Back,
+    LocationTag_Temples,
+    LocationTag_Around,
+    LocationTag_Neck,
+    LocationTag_Teeth,  
+    LocationTag_Jaw,
+    
+    WarningTag_Weakness,
+    WarningTag_Fatigue,
+    
+    SymptomTag_Nausea,
+    SymptomTag_Vomiting,
+    SymptomTag_Light,
+    SymptomTag_Noise,
+    SymptomTag_Smell,
+    SymptomTag_Scalp, 
+    SymptomTag_Neck,
+    SymptomTag_Fainting,
+    SymptomTag_Nasal,
+    
+    ReliefTag_Yes,
+    ReliefTag_No,
+    
+    FoodTag_Aged,
+    FoodTag_Alcohol,
+    FoodTag_Artificial,
+    FoodTag_Chocolate,
+    FoodTag_Citrus,
+    FoodTag_Coffee,
+    FoodTag_Soda,
+    FoodTag_Monosodium,
+    FoodTag_Processed,
+    FoodTag_Salty,
+    FoodTag_Nuts,
+    
+    EnvTag_Temperature,
+    EnvTag_Barometric,
+    EnvTag_Humidity,
+    EnvTag_Smoke,
+    EnvTag_Chemical,
+    EnvTag_Perfumes,
+    EnvTag_Bright,
+    
+    LifeTag_Changes,
+    LifeTag_High,
+    LifeTag_Increased,
+    LifeTag_Depression,
+    LifeTag_Physical,
+    LifeTag_Exercising,
+    LifeTag_Becoming,
+    LifeTag_Eyestrain
+};
+
+
+extern NSString * ENTITY_LOCATION;
+extern NSString * ENTITY_WARNING;
+extern NSString * ENTITY_SYMPTOM;
+extern NSString * ENTITY_MIGRAIN_EVENT;
+extern NSString * ENTITY_TREATMENT;
+extern NSString * ENTITY_RELIEF;
+extern NSString * ENTITY_FOOD;
+extern NSString * ENTITY_ENVIRONMENT;
+extern NSString * ENTITY_LIFESTYLE;
+
+typedef enum {
+    
+    BHReportFilterWarningSigns,   //
+    BHReportFilterLocation,       // this option for headache only! 
+    BHReportFilterSymptoms,       //
+    
+    BHReportFilterTreatment,      // these are included in PDF only 
+    BHReportFilterRelief,             
+    
+    BHReportFilterDiet,           // these options are common for headache and not, for PDF and screen      
+    BHReportFilterLifestyle,          
+    BHReportFilterMenstruation,          
+    BHReportFilterEnvironment,         
+    BHReportFilterNotes,         
+    BHReportFilterLast,
+    
+    // ----- 
+    BHReportLastHeadacheOption1 = BHReportFilterRelief, 
+
+    BHScreenFilterRow_WarningSigns = 0,
+    BHScreenFilterRow_Location,
+    BHScreenFilterRow_Symptoms,
+    BHScreenFilterRow_Diet,
+    BHScreenFilterRow_Lifestyle_And_Menstruation,
+    BHScreenFilterRow_Environment,
+    BHScreenFilterRow_Notes,
+    BHScreenFilterRow_Last,
+    
+    BHScreenFilterInitialMask = 
+        (1 << BHScreenFilterRow_WarningSigns) |  
+        (1 << BHScreenFilterRow_Location) |
+        (1 << BHScreenFilterRow_Symptoms) |
+        (1 << BHScreenFilterRow_Diet) |       
+        (1 << BHScreenFilterRow_Lifestyle_And_Menstruation) |
+        (1 << BHScreenFilterRow_Environment) |  
+        (1 << BHScreenFilterRow_Notes), 
+
+} BHReportFilterOption;
+
+extern BOOL BHTestLogFilterOption(BHReportFilterOption option, NSInteger screenMask);
+
+typedef struct {
+    NSString * name;
+    SEL entitySelector;
+} BHReportFilterOptionInfo;
+
+extern BHReportFilterOptionInfo BHGetReportFilterOptionInfo(BHReportFilterOption option);
+extern NSString * BHScreenFilterOptionToString(NSInteger option);
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+enum { 
+    BHMenstruatingNoInfoProvided,
+    BHMenstruatingYes,
+    BHMenstruatingNo,
+    BHMenstruatingLast
+};
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+typedef enum { 
+    BHPainIntenseModerate = 10,  
+    BHPainIntensePainful = 20,  
+    BHPainIntenseVeryPainful = 30  
+} BHPainIntense;
+
+NSString * BHPainIntenceToString(BHPainIntense intense);
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+@interface BHMigrainEvent : BHManagedObject { 
+    BOOL _userWantNotToBeAskedOfMenstruations;
+    CGFloat _screenReportHeight;
+    NSInteger _screenReportChangeCounter;
+}
+
+// runtime context-specific flags/data
+@property (nonatomic) BOOL userWantNotToBeAskedOfMenstruations; 
+@property (nonatomic) CGFloat screenReportHeight;
+@property (nonatomic) NSInteger screenReportChangeCounter;
+
+// data fields 
+@property (nonatomic,retain) NSNumber * hasHeadache; 
+@property (nonatomic,retain) NSNumber * skippedBreakfast; 
+@property (nonatomic,retain) NSNumber * skippedDinner; 
+@property (nonatomic,retain) NSNumber * skippedLunch; 
+@property (nonatomic,retain) NSNumber * menstruating; 
+@property (nonatomic,retain) NSNumber * fasting; 
+@property (nonatomic,retain) NSNumber * intensity; 
+@property (nonatomic,retain) NSNumber * duration; 
+@property (nonatomic,retain) NSNumber * startHour; 
+@property (nonatomic,retain) NSDate   * timestamp;
+@property (nonatomic,retain) NSSet    * locations;
+@property (nonatomic,retain) NSSet    * warnings;
+@property (nonatomic,retain) NSSet    * symptoms;
+@property (nonatomic,retain) NSSet    * treatments;
+@property (nonatomic,retain) NSSet    * foods;
+@property (nonatomic,retain) NSSet    * reliefs;
+@property (nonatomic,retain) NSSet    * environments;
+@property (nonatomic,retain) NSSet    * lifestyles;
+@property (nonatomic,retain) NSString * note;
+@property (nonatomic,retain) NSNumber * yearMonth;
+@property (nonatomic,retain) NSNumber * isCompleted;
+
+- (NSString *)report_trimmedNote;
+- (NSString *)report_menstruation;
+
+@property (nonatomic,readonly) NSString * startHourString;
+- (NSString *)durationString:(BOOL)shortForm;
+- (NSMutableArray *)orderedCollectionItemsForSelector:(SEL)entitySelector includingCustomItems:(BOOL)includingCustomItems ;
+
+@end
+
+//==================================================================================================================================
+//==================================================================================================================================
+enum {
+    BHdateFormatSimple,    
+    BHdateFormatLong,
+    BHdateFormatDay
+};
+
+typedef enum { 
+    BHStartDateAll,
+    BHStartDateLast60,
+    BHStartDateLast30,
+    BHStartDateLast2Weeks,
+    BHStartDateIndividualDate,
+    BHStartDateLast
+} BHStartDateKind;
+
+typedef struct { 
+    BHStartDateKind dateKind;
+    INDateComponents ymd; // individual only
+} BHStartDate;
+
+
+NSString * BHDateToString(NSDate * date, NSInteger format);
+NSString * BHStartDateToString(BHStartDate startDate);
+NSNumber * BHBoolNumber(BOOL value);
+UIColor  * BHColorForPainIntense(BHPainIntense intense);
+BOOL       BHStartDatesAreEqual(BHStartDate d1, BHStartDate d2);
+NSDate   * BHDateFromStartDate(BHStartDate d1);
+BHStartDate BHNormalizeStartDate(BHStartDate d1);
+

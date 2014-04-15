@@ -1,0 +1,347 @@
+
+#import "BHDiaryLogViewController.h"
+#import "BH.h"
+#import "BHReports.h"
+#import "BHAppDelegate.h"
+
+//==================================================================================================================================
+//==================================================================================================================================
+
+@implementation BHDiaryLogViewController
+
+- (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil {
+    self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil];
+    if (self) {
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(dbChanged:) name:BH_RECORD_SAVED_IN_CONTEXT_NOTIFICATION object:nil];
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(startDateChanged:) name:BH_SHARED_START_DATE_CHANGED_NOTIFICATION object:nil];
+        _filteredData = [BHObject new];
+    }
+    return self;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)dealloc {
+    [_tableView release];
+    [_filterButton release];
+    [_noResultsCell release];
+    [_progressIndicator release];
+    [[NSNotificationCenter defaultCenter] removeObserver:self ];
+    [_filteredData release];
+    [_noResultLabel release];
+    [_helpOverlay release];
+    [_shareButton release];
+    [super dealloc];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+static NSInteger _ChangesCounter = 1;
+
+- (void)loadData2 {
+    if (_fetchedResults1) { 
+        [_fetchedResults1 release];
+    }
+    
+    NSDate * startDate = BHDateFromStartDate(g_BH.sharedStartDate);
+    
+    _fetchedResults1 = [[g_BH fetchedResultsControllerForEventWithStyle:BHFetchStyleScreenReport sinceDate:startDate ] retain];
+    _ChangesCounter++;
+    
+    // 
+    [_filteredData removeAllItems];
+    _noDataMode = g_BH.sharedStartDate.dateKind == BHStartDateAll;
+    for (id <NSFetchedResultsSectionInfo> sectionInfo in [_fetchedResults1 sections]) { 
+        _noDataMode = NO;
+        BHObject * section = [BHObject new];
+        for (BHMigrainEvent * event in sectionInfo.objects) {
+            
+            if ([BHMigrainEventScreenReportView testForEvent:event]) { 
+                [section addItem:event];   
+            }
+        }
+        if (section.items.count) {
+            [_filteredData addItem:section];
+        }
+        [section release];
+    }
+    _noRecordsMode = _filteredData.items.count == 0;
+    if (_noDataMode) { 
+        self.navigationItem.rightBarButtonItem = nil;
+        self.navigationItem.leftBarButtonItem = nil;
+    } else {
+        self.navigationItem.rightBarButtonItem = _filterButton;
+        self.navigationItem.leftBarButtonItem = _shareButton;
+    }
+    [_tableView reloadData];
+    [_progressIndicator setHidden:YES withAnimation:YES];
+    _validated = YES;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)dbChanged:(id)ntf {
+    _validated = NO;    
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)startDateChanged:(id)ntf {
+    _validated = NO;
+    #ifdef DEBUG_LOG
+        NSLog(@"Diary Log: start date has been changed, mark UI as dirty");
+    #endif
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)loadData {
+    if (!_validated) { 
+        [_progressIndicator popupWithAnimation:YES andAutoHideOnDelay:0];
+        _noResultLabel.text = nil;
+        [self performSelector:@selector(loadData2) withObject:nil afterDelay:0.2];
+    }
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];    
+    [self loadData];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    [self bh_setStyleWithCoolBackground:YES topShadow:YES havingOwnNavBar:NO]; 
+    _myYear = [[NSDate date] inru_components].year;
+    self.navigationItem.rightBarButtonItem = _filterButton;
+    self.navigationItem.leftBarButtonItem = _shareButton;
+    if (_helpOverlay) { 
+        [_helpOverlay layOverViewController:self.navigationController delegate:self animated:NO];
+    }
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (BOOL)bh_style_shouldShowSideShadows { 
+    return YES;    
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)viewDidUnload {
+    [_tableView release];
+    _tableView = nil;
+    [_filterButton release];
+    _filterButton = nil;
+    [_noResultsCell release];
+    _noResultsCell = nil;
+    [_progressIndicator release];
+    _progressIndicator = nil;
+    [_noResultLabel release];
+    _noResultLabel = nil;
+    [_shareButton release];
+    _shareButton = nil;
+    [super viewDidUnload];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)diaryLogFilter:(BHDiaryLogFilterViewController *)filter didSelectNewFilterOptions:(BHFilterOptions)options { 
+    g_BH.logFilterItemMask1 = options.itemMask;
+    g_BH.sharedStartDate = options.startDate;
+    _validated = NO;  
+    [self loadData];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)shareDialog:(BHShareViewController *)controller didCompleteWithOptions:(BHShareOptions)options { 
+    g_BH.sharedStartDate = options.startDate;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (IBAction)buttonPressed:(id)sender {
+    if (sender == _filterButton) { 
+        BHFilterOptions options = { 
+            .itemMask  = g_BH.logFilterItemMask1, 
+            .startDate = g_BH.sharedStartDate     
+        };
+        id controller = [BHDiaryLogFilterViewController filterForDelegate:self options:options];
+        [g_AppDelegate.rootTabBarController presentModalViewController:controller animated:YES];
+    }
+    if (sender == _shareButton) {
+        BHShareOptions options = { 
+            .includeAllCharts = YES, 
+            .includeHistory = YES,
+            .showHistorySwitcher = NO,
+            .startDate = g_BH.sharedStartDate,
+            .singleChartKind = BHNonexistentChartSeries
+        };
+        id controller = [BHShareViewController shareDialogForDelegate:self options:options];
+        [g_AppDelegate.rootTabBarController presentModalViewController:controller animated:YES];
+        // [self.navigationController pushViewController:controller animated:YES];
+    }
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
+    if (tableView == _tableView) { 
+        return _noRecordsMode ? 1 : _filteredData.items.count;
+    } else { 
+        return 1;   
+    }
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (CGFloat)tableView:(UITableView *)tableView heightForHeaderInSection:(NSInteger)section { 
+    if (tableView == _tableView) { 
+        return _noRecordsMode ? 0 : 23;   
+    } else { 
+        return 0;
+    }
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (UIView *)tableView:(UITableView *)tableView viewForHeaderInSection:(NSInteger)section {
+    if (_noRecordsMode) { 
+        return nil;
+    }
+    UIImageView * iv = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"table_green_title.png"]];
+    iv.frame = CGRectMake(0,0,200,23);
+    UILabel * label = [[UILabel alloc] initWithFrame:INRectInset(iv.bounds, 4, 0, 0, 0 )];
+    label.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleWidth;
+    label.textAlignment = UITextAlignmentLeft;
+    label.backgroundColor = [UIColor clearColor];
+    label.font = [UIFont boldSystemFontOfSize:17];
+    label.textColor = [UIColor whiteColor];
+    label.shadowColor = [UIColor blackColor];
+    label.shadowOffset = CGSizeMake(0, 1);
+    [iv addSubview:label];
+    [label release];
+    
+    BHObject * sect = [_filteredData itemAtIndex:section];
+    NSAssert(sect.items.count,@"mk_48f5b05e_b331_4548_b991_09a6a06ba129");
+    BHMigrainEvent * event =  [sect itemAtIndex:0];
+    
+
+    if (event.yearMonth.intValue / 100 == _myYear) { 
+        label.text = [event.timestamp inru_formatWithKey:BH_MONTH];   
+    } else { 
+        label.text = [event.timestamp inru_formatWithKey:BH_MONTH_YEAR];   
+    }
+    
+    return [iv autorelease];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
+    if (tableView == _tableView) { 
+        return _noRecordsMode ? 1 : [[[_filteredData itemAtIndex:section] items] count];
+    } else { 
+        return BHReportFilterLast;
+    }
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    if (_noRecordsMode) {
+        if (_noDataMode) { 
+            _noResultLabel.text = TEXT_NO_RECORDS;
+        } else {
+            _noResultLabel.text = TEXT_BAD_FILTER;
+        }
+        return _noResultsCell;
+    }
+    const int V_TAG = 52367487;
+
+    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"cell"];
+    if (cell == nil) {
+        cell = [[[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"cell"] autorelease];
+        cell.selectionStyle = UITableViewCellSelectionStyleNone;
+        BHMigrainEventScreenReportView * v = (id)[[INNibLoader sharedLoader] loadViewFromNib:@"BHMigrainEventScreenReportView"];
+        v.frame = cell.contentView.bounds;
+        v.autoresizingMask = INFlexibleWidthHeight;
+        v.tag = V_TAG;
+        [cell.contentView addSubview:v];
+        
+        INPanel * p = (id)[v viewWithTag:255];
+        p.backgroundStyle = INPanelBGStyleVerticalGradient;
+        p.topGradientColor = [UIColor inru_colorFromRGBA:IN_DEC2RGBA(247, 247, 247, 255)];
+        p.bottomGradientColor = [UIColor inru_colorFromRGBA:IN_DEC2RGBA(221, 221, 221, 221)];
+    }
+    
+    // Configure the cell
+    BHMigrainEventScreenReportView * v = (id)[cell.contentView viewWithTag:V_TAG];
+    BHObject * sect = [_filteredData itemAtIndex:indexPath.section];
+    BHMigrainEvent * event = [sect itemAtIndex:indexPath.row]; 
+    v.event = event;
+    return cell;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
+    if (tableView == _tableView) { 
+        if (_noRecordsMode) { 
+            return tableView.frame.size.height;
+        }
+        BHObject * sect = [_filteredData itemAtIndex:indexPath.section];
+        BHMigrainEvent * event = [sect itemAtIndex:indexPath.row]; 
+        if (!event.screenReportHeight || (event.screenReportChangeCounter != _ChangesCounter)) { 
+            event.screenReportHeight = [BHMigrainEventScreenReportView heightForEvent:event];
+            event.screenReportChangeCounter = _ChangesCounter;
+        }
+        return event.screenReportHeight;
+    } else {
+        return COMMON_CELL_HEIGHT;
+    }
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+    [tableView deselectRowAtIndexPath:indexPath animated:YES];
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)bh_becomeActiveTab:(BOOL)firstTime {
+    if (firstTime) { 
+        if (!_helpOverlay) { 
+             _helpOverlay = [[BHHelpOverlayViewController alloc] initWithNibName:@"BHHelpOverlayViewController_DiaryLog" bundle:nil];
+            [_helpOverlay layOverViewController:self.navigationController delegate:self animated:NO];
+        }
+    }
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)bh_reselectActiveTab { 
+    if (_tableView.numberOfSections && [_tableView numberOfRowsInSection:0]) {
+        [_tableView scrollToRowAtIndexPath:[NSIndexPath indexPathForRow:0 inSection:0] 
+            atScrollPosition:UITableViewScrollPositionTop animated:YES];
+    }
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+
+- (void)inoverlayController:(INOverlayViewController *)overlayController dismissedWithCode:(INOverlayDismissCode)code {
+    if (code == BHHelpOverlayDoneExitCode) { 
+        self.bh_tabFirstTimeOpened = NO;    
+    }
+    [_helpOverlay release];
+    _helpOverlay = nil;
+}
+
+@end
+
+
